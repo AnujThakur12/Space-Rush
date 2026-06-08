@@ -55,6 +55,10 @@ class SkyAssets {
             powerup_coin_magnet: `${imgBase}/powerup_coin_magnet.png`,
             powerup_extra_life: `${imgBase}/powerup_extra_life.png`,
             powerup_coins: `${imgBase}/powerup_coins.png`,
+            powerup_weapon_laser: `${imgBase}/powerup_weapon_laser.png`,
+            powerup_weapon_rocket: `${imgBase}/powerup_weapon_rocket.png`,
+            powerup_weapon_plasma: `${imgBase}/powerup_weapon_plasma.png`,
+            powerup_weapon_triple: `${imgBase}/powerup_weapon_triple.png`,
             // Weapons
             weapon_machinegun: `${imgBase}/weapon_machinegun.png`,
             weapon_laser: `${imgBase}/weapon_laser.png`,

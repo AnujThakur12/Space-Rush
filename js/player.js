@@ -92,9 +92,9 @@ class SkyPlayer {
         this.engineFlicker += dt * 10;
     }
 
-    canFire() {
+    canFire(dt) {
         if (!this.alive) return false;
-        this.fireTimer -= 1 / 60;
+        this.fireTimer -= dt;
         if (this.fireTimer <= 0) {
             this.fireTimer = this.fireRate;
             this.totalShots++;

@@ -78,20 +78,22 @@ class SkyStrike {
     _setupCanvas() {
         this._resizeCanvas();
         window.addEventListener('resize', () => this._resizeCanvas());
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => this._resizeCanvas(), 300);
+        });
     }
 
     _resizeCanvas() {
-        const container = this.canvas.parentElement;
-        const maxW = window.innerWidth;
-        const maxH = window.innerHeight;
-        const ratio = 16 / 9;
-        let w = maxW;
-        let h = w / ratio;
-        if (h > maxH) { h = maxH; w = h * ratio; }
-        this.canvas.style.width = Math.floor(w) + 'px';
-        this.canvas.style.height = Math.floor(h) + 'px';
-        this.canvas.width = 1600;
-        this.canvas.height = 900;
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+        const isMobile = winW < winH;
+        if (isMobile) {
+            this.canvas.height = Math.min(winH, 960);
+            this.canvas.width = Math.round(this.canvas.height * 9 / 16);
+        } else {
+            this.canvas.width = Math.min(winW, 1600);
+            this.canvas.height = Math.round(this.canvas.width * 9 / 16);
+        }
     }
 
     _bindKeys() {
@@ -178,61 +180,62 @@ class SkyStrike {
         });
 
         this.canvas.addEventListener('click', async (e) => {
-            const h = this.canvas.height;
+            const W = this.canvas.width, H = this.canvas.height;
             const rect = this.canvas.getBoundingClientRect();
-            const scaleX = this.canvas.width / rect.width;
-            const scaleY = this.canvas.height / rect.height;
+            const scaleX = W / rect.width;
+            const scaleY = H / rect.height;
             const x = (e.clientX - rect.left) * scaleX;
             const y = (e.clientY - rect.top) * scaleY;
+            const sy = (v) => (v / 900) * H;
+            const sx = (v) => (v / 1600) * W;
 
             if (this.state === 'menu') {
-                const startY = this.canvas.height * 0.45; const itemH = 42;
+                const startY = H * 0.45; const itemH = sy(42);
                 for (let i = 0; i < this.ui.menuItems.length; i++) {
                     const itemY = startY + i * itemH;
-                    if (y > itemY - 20 && y < itemY + 20) { this.ui.menuSelected = i;  this.audio.playMenuClick(); this._handleMenuSelect(i); return; }
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) { this.ui.menuSelected = i;  this.audio.playMenuClick(); this._handleMenuSelect(i); return; }
                 }
             }
 
             if (this.gameOver) {
-                const btnY = this.canvas.height * 0.75;
-                if (y > btnY - 20 && y < btnY + 20) {  this.restartGame(); return; }
-                if (y > btnY + 25 && y < btnY + 60) {  this.state = 'menu'; this.gameOver = false; this.audio.stopMusic(); return; }
+                const btnY = H * 0.75;
+                if (y > btnY - sy(20) && y < btnY + sy(20)) {  this.restartGame(); return; }
+                if (y > btnY + sy(25) && y < btnY + sy(60)) {  this.state = 'menu'; this.gameOver = false; this.audio.stopMusic(); return; }
             }
 
             if (this.state === 'plane_select') {
-                const startY = 90; const itemH = 50;
+                const startY = sy(90); const itemH = sy(50);
                 for (let i = 0; i < this.ui.planeItems.length; i++) {
                     const itemY = startY + i * itemH;
-                    if (y > itemY - 20 && y < itemY + 20) { this.ui.planeMenuSelected = i;  this._handlePlaneSelect(i); return; }
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) { this.ui.planeMenuSelected = i;  this._handlePlaneSelect(i); return; }
                 }
             }
 
             if (this.state === 'upgrade') {
-                const startY = 110; const itemH = 50;
+                const startY = sy(110); const itemH = sy(50);
                 for (let i = 0; i < this.ui.upgradeItems.length; i++) {
                     const itemY = startY + i * itemH;
-                    if (y > itemY - 20 && y < itemY + 20) { this.ui.upgradeMenuSelected = i;  this._handleUpgradeBuy(i); return; }
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) { this.ui.upgradeMenuSelected = i;  this._handleUpgradeBuy(i); return; }
                 }
             }
 
             if (this.state === 'settings') {
-                
-                const startY = 120; const itemH = 45;
+                const startY = sy(120); const itemH = sy(45);
                 for (let i = 0; i < this.ui.settingsItems.length; i++) {
                     const itemY = startY + i * itemH;
-                    if (y > itemY - 20 && y < itemY + 20) {
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) {
                         if (i === 5) { this._handleSettingsSelect(5); return; }
                         if (i === 6) { this.state = 'menu'; return; }
                         this.ui.settingsMenuSelected = i;
                         if (i <= 1) {
                             const settings = this.storage.getSettings();
-                            if (x > this.canvas.width / 2 - 50) settings[i === 0 ? 'musicVolume' : 'sfxVolume'] = Math.min(1, (settings[i === 0 ? 'musicVolume' : 'sfxVolume'] || 0.5) + 0.1);
+                            if (x > W / 2 - sx(50)) settings[i === 0 ? 'musicVolume' : 'sfxVolume'] = Math.min(1, (settings[i === 0 ? 'musicVolume' : 'sfxVolume'] || 0.5) + 0.1);
                             else settings[i === 0 ? 'musicVolume' : 'sfxVolume'] = Math.max(0, (settings[i === 0 ? 'musicVolume' : 'sfxVolume'] || 0.5) - 0.1);
                             this.storage.updateSettings(settings);
                             this.audio.setMusicVolume(settings.musicVolume);
                             this.audio.setSfxVolume(settings.sfxVolume);
                         } else {
-                            const dir = x > this.canvas.width / 2 ? 1 : -1;
+                            const dir = x > W / 2 ? 1 : -1;
                             this._handleSettingsAdjust(dir);
                         }
                         return;
@@ -241,11 +244,11 @@ class SkyStrike {
             }
 
             if (this.state === 'highscores' || this.state === 'about') {
-                if (y > h - 50) { this.state = 'menu'; this.audio.playMenuClick(); return; }
+                if (y > H - sy(50)) { this.state = 'menu'; this.audio.playMenuClick(); return; }
             }
 
             if (this.state === 'plane_select' || this.state === 'upgrade') {
-                if (y > h - 40) { this.state = 'menu'; this.audio.playMenuClick(); return; }
+                if (y > H - sy(40)) { this.state = 'menu'; this.audio.playMenuClick(); return; }
             }
 
             if (this.state === 'account') {
@@ -399,11 +402,13 @@ class SkyStrike {
 
     async _handleAccountClick(x, y) {
         const ui = this.ui; const h = this.canvas.height;
+        const sy = (v) => (v / 900) * h;
+        const sx = (v) => (v / 1600) * this.canvas.width;
         if (!this.storage.isLoggedIn()) {
             if (ui.accountState === 'login') {
-                if (y > 123 && y < 149 && x > 480 && x < 730) { ui.loginField = 'username'; return; }
-                if (y > 163 && y < 189 && x > 480 && x < 730) { ui.loginField = 'password'; return; }
-                if (y > 270 && y < 295) {
+                if (y > sy(123) && y < sy(149) && x > sx(480) && x < sx(730)) { ui.loginField = 'username'; return; }
+                if (y > sy(163) && y < sy(189) && x > sx(480) && x < sx(730)) { ui.loginField = 'password'; return; }
+                if (y > sy(270) && y < sy(295)) {
                     if (!ui.loginInput || !ui.passInput) { ui.accountMessage = 'Enter email and password'; ui.accountMessageColor = '#ff4444'; return; }
                     ui.accountMessage = 'Logging in...'; ui.accountMessageColor = '#88bbff';
                     const r = await this.storage.login(ui.loginInput, ui.passInput);
@@ -411,13 +416,13 @@ class SkyStrike {
                     if (r.ok) { this.player.coins = this.storage.get('coins'); ui.notify('Welcome!', '#00ff00'); this.audio.playPowerUp(); }
                     return;
                 }
-                if (y > 310 && y < 335) { ui.accountState = 'register'; ui.registerInput = ''; ui.registerPassInput = ''; ui.registerPassConfirm = ''; ui.accountMessage = ''; return; }
-                if (y > 350 && y < 375) { this.state = 'menu'; ui.accountState = 'profile'; return; }
+                if (y > sy(310) && y < sy(335)) { ui.accountState = 'register'; ui.registerInput = ''; ui.registerPassInput = ''; ui.registerPassConfirm = ''; ui.accountMessage = ''; return; }
+                if (y > sy(350) && y < sy(375)) { this.state = 'menu'; ui.accountState = 'profile'; return; }
             } else if (ui.accountState === 'register') {
-                if (y > 123 && y < 149 && x > 420 && x < 670) { ui.registerField = 'username'; return; }
-                if (y > 163 && y < 189 && x > 420 && x < 670) { ui.registerField = 'password'; return; }
-                if (y > 203 && y < 229 && x > 420 && x < 670) { ui.registerField = 'confirm'; return; }
-                if (y > 310 && y < 340) {
+                if (y > sy(123) && y < sy(149) && x > sx(420) && x < sx(670)) { ui.registerField = 'username'; return; }
+                if (y > sy(163) && y < sy(189) && x > sx(420) && x < sx(670)) { ui.registerField = 'password'; return; }
+                if (y > sy(203) && y < sy(229) && x > sx(420) && x < sx(670)) { ui.registerField = 'confirm'; return; }
+                if (y > sy(310) && y < sy(340)) {
                     if (!ui.registerInput || !ui.registerPassInput || !ui.registerPassConfirm) { ui.accountMessage = 'Please fill all fields'; ui.accountMessageColor = '#ff4444'; return; }
                     if (ui.registerPassInput !== ui.registerPassConfirm) { ui.accountMessage = 'Passwords do not match!'; ui.accountMessageColor = '#ff4444'; return; }
                     ui.accountMessage = 'Creating account...'; ui.accountMessageColor = '#88bbff';
@@ -426,12 +431,12 @@ class SkyStrike {
                     if (r.ok) { this.player.coins = this.storage.get('coins'); ui.notify('Account created!', '#00ff00'); this.audio.playPowerUp(); }
                     return;
                 }
-                if (y > 350 && y < 375) { this.state = 'menu'; ui.accountState = 'profile'; return; }
+                if (y > sy(350) && y < sy(375)) { this.state = 'menu'; ui.accountState = 'profile'; return; }
             }
         } else {
-            if (y > 270 && y < 295) { await this.storage.logout(); ui.accountMessage = 'Logged out'; ui.accountMessageColor = '#88bbff'; ui.notify('Logged out', '#88bbff'); return; }
-            if (y > 310 && y < 335) { if (confirm('Delete account?')) { await this.storage.deleteAccount(); ui.accountMessage = 'Account deleted'; ui.accountMessageColor = '#ff4444'; } return; }
-            if (y > 350 && y < 380) { this.state = 'menu'; ui.accountState = 'profile'; return; }
+            if (y > sy(270) && y < sy(295)) { await this.storage.logout(); ui.accountMessage = 'Logged out'; ui.accountMessageColor = '#88bbff'; ui.notify('Logged out', '#88bbff'); return; }
+            if (y > sy(310) && y < sy(335)) { if (confirm('Delete account?')) { await this.storage.deleteAccount(); ui.accountMessage = 'Account deleted'; ui.accountMessageColor = '#ff4444'; } return; }
+            if (y > sy(350) && y < sy(380)) { this.state = 'menu'; ui.accountState = 'profile'; return; }
         }
     }
 
@@ -526,7 +531,7 @@ class SkyStrike {
         if (this.player.alive) {
             this.effects.emitEngineTrail(this.player.x, this.player.y, 1, '#ff6600');
 
-            if (this.controls.isFiring() && this.player.canFire()) {
+            if (this.controls.isFiring() && this.player.canFire(dt)) {
                 const fp = this.player.getFirePosition();
                 this.bulletManager.firePlayer(fp.x, fp.y, -Math.PI / 2, this.player.weapon, this.player.damage);
                 if (this.player.weapon === 'laser') this.audio.playLaser();
@@ -544,7 +549,7 @@ class SkyStrike {
         }
 
         this.bulletManager.update(dt);
-        this.powerUpManager.update(dt);
+        this.powerUpManager.update(dt, this.canvas.height);
         this._checkCollisions();
     }
 

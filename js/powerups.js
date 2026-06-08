@@ -8,7 +8,20 @@ class SkyPowerUp {
         this.speed = 60;
         this.elapsed = 0;
         this.floatOffset = Math.random() * Math.PI * 2;
-        this.spriteName = `powerup_${type}`;
+        const spriteMap = {
+            health: 'powerup_health',
+            shield: 'powerup_shield',
+            doubleDamage: 'powerup_double_damage',
+            rapidFire: 'powerup_rapid_fire',
+            coinMagnet: 'powerup_coin_magnet',
+            extraLife: 'powerup_extra_life',
+            weaponLaser: 'powerup_weapon_laser',
+            weaponRocket: 'powerup_weapon_rocket',
+            weaponPlasma: 'powerup_weapon_plasma',
+            weaponTriple: 'powerup_weapon_triple',
+            coins: 'powerup_coins'
+        };
+        this.spriteName = spriteMap[type] || `powerup_${type}`;
 
         const configs = {
             health: { color: '#00ff00', icon: '+', label: 'Health Pack' },
@@ -30,10 +43,10 @@ class SkyPowerUp {
         this.label = cfg.label;
     }
 
-    update(dt) {
+    update(dt, canvasH) {
         this.y += this.speed * dt;
         this.elapsed += dt;
-        if (this.y > 1300) this.active = false;
+        if (this.y > (canvasH || 1300) + 100) this.active = false;
     }
 
     render(ctx) {
@@ -118,9 +131,9 @@ class SkyPowerUpManager {
         if (Math.random() < this.dropChance) this.spawnAt(x, y);
     }
 
-    update(dt) {
+    update(dt, canvasH) {
         for (let i = this.powerups.length - 1; i >= 0; i--) {
-            this.powerups[i].update(dt);
+            this.powerups[i].update(dt, canvasH);
             if (!this.powerups[i].active) this.powerups.splice(i, 1);
         }
     }

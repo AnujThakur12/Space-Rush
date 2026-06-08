@@ -1,4 +1,12 @@
 class SkyUI {
+    sx(x) { return (x / 1600) * this.canvas.width; }
+    sy(y) { return (y / 900) * this.canvas.height; }
+    sw(w) { return (w / 1600) * this.canvas.width; }
+    sh(h) { return (h / 900) * this.canvas.height; }
+    fi(x) { return Math.floor(x); }
+    get REF_W() { return 1600; }
+    get REF_H() { return 900; }
+
     constructor(game) {
         this.game = game;
         this.canvas = game.canvas;
@@ -189,24 +197,24 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 15; ctx.shadowColor = '#ffd700';
-        ctx.font = 'bold 32px monospace'; ctx.fillText('HIGH SCORES', w / 2, 60);
+        ctx.font = 'bold 32px monospace'; ctx.fillText('HIGH SCORES', w / 2, this.sy(60));
         ctx.shadowBlur = 0;
         const board = this.game.storage.getLeaderboard();
         if (board.length === 0) {
             ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '18px monospace';
             ctx.fillText('No scores yet!', w / 2, h / 2);
         } else {
-            const startY = 110; ctx.font = '14px monospace';
+            const startY = this.sy(110); ctx.font = '14px monospace';
             board.forEach((entry, i) => {
-                const y = startY + i * 30;
+                const y = startY + i * this.sy(30);
                 ctx.fillStyle = i === 0 ? '#ffd700' : i < 3 ? '#ff8800' : '#ffffff';
-                ctx.textAlign = 'left'; ctx.fillText(`${i + 1}.`, 50, y);
-                ctx.fillText(entry.name || 'Pilot', 90, y);
-                ctx.textAlign = 'right'; ctx.fillText(`${entry.score}`, w - 50, y);
+                ctx.textAlign = 'left'; ctx.fillText(`${i + 1}.`, this.sx(50), y);
+                ctx.fillText(entry.name || 'Pilot', this.sx(90), y);
+                ctx.textAlign = 'right'; ctx.fillText(`${entry.score}`, w - this.sx(50), y);
             });
         }
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '14px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('[ Back ]', w / 2, h - 30);
+        ctx.fillText('[ Back ]', w / 2, h - this.sy(30));
         ctx.restore();
     }
 
@@ -217,10 +225,10 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#4488ff'; ctx.shadowBlur = 15; ctx.shadowColor = '#4488ff';
-        ctx.font = 'bold 32px monospace'; ctx.fillText('SETTINGS', w / 2, 60);
+        ctx.font = 'bold 32px monospace'; ctx.fillText('SETTINGS', w / 2, this.sy(60));
         ctx.shadowBlur = 0;
         const settings = this.game.storage.getSettings();
-        const startY = 120; const itemH = 45;
+        const startY = this.sy(120); const itemH = this.sy(45);
         for (let i = 0; i < this.settingsItems.length; i++) {
             const y = startY + i * itemH;
             const selected = i === this.settingsMenuSelected;
@@ -228,32 +236,32 @@ class SkyUI {
             ctx.font = selected ? 'bold 18px monospace' : '16px monospace';
             switch (i) {
                 case 0:
-                    ctx.textAlign = 'left'; ctx.fillText('Music Volume', 50, y);
-                    const mw = 200; const mx = w / 2 - mw / 2 + 50;
+                    ctx.textAlign = 'left'; ctx.fillText('Music Volume', this.sx(50), y);
+                    const mw = this.sw(200); const mx = w / 2 - mw / 2 + this.sx(50);
                     ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(mx, y - 8, mw, 8);
                     ctx.fillStyle = selected ? '#4488ff' : '#88bbff';
                     ctx.fillRect(mx, y - 8, mw * settings.musicVolume, 8);
                     ctx.textAlign = 'right'; ctx.fillStyle = selected ? '#ffffff' : 'rgba(255,255,255,0.6)';
-                    ctx.font = '12px monospace'; ctx.fillText(Math.round(settings.musicVolume * 100) + '%', w - 50, y);
+                    ctx.font = '12px monospace'; ctx.fillText(Math.round(settings.musicVolume * 100) + '%', w - this.sx(50), y);
                     break;
                 case 1:
-                    ctx.textAlign = 'left'; ctx.fillText('SFX Volume', 50, y);
-                    const sw = 200; const sx = w / 2 - sw / 2 + 50;
+                    ctx.textAlign = 'left'; ctx.fillText('SFX Volume', this.sx(50), y);
+                    const sw = this.sw(200); const sx = w / 2 - sw / 2 + this.sx(50);
                     ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(sx, y - 8, sw, 8);
                     ctx.fillStyle = selected ? '#4488ff' : '#88bbff';
                     ctx.fillRect(sx, y - 8, sw * settings.sfxVolume, 8);
                     ctx.textAlign = 'right'; ctx.fillStyle = selected ? '#ffffff' : 'rgba(255,255,255,0.6)';
-                    ctx.font = '12px monospace'; ctx.fillText(Math.round(settings.sfxVolume * 100) + '%', w - 50, y);
+                    ctx.font = '12px monospace'; ctx.fillText(Math.round(settings.sfxVolume * 100) + '%', w - this.sx(50), y);
                     break;
-                case 2: ctx.textAlign = 'left'; ctx.fillText('Graphics: ' + settings.graphicsQuality.toUpperCase(), 50, y); break;
-                case 3: ctx.textAlign = 'left'; ctx.fillText('Fullscreen: ' + (settings.fullscreen ? 'ON' : 'OFF'), 50, y); break;
-                case 4: ctx.textAlign = 'left'; ctx.fillText('Mobile Vibration: ' + (settings.mobileVibration ? 'ON' : 'OFF'), 50, y); break;
+                case 2: ctx.textAlign = 'left'; ctx.fillText('Graphics: ' + settings.graphicsQuality.toUpperCase(), this.sx(50), y); break;
+                case 3: ctx.textAlign = 'left'; ctx.fillText('Fullscreen: ' + (settings.fullscreen ? 'ON' : 'OFF'), this.sx(50), y); break;
+                case 4: ctx.textAlign = 'left'; ctx.fillText('Mobile Vibration: ' + (settings.mobileVibration ? 'ON' : 'OFF'), this.sx(50), y); break;
                 case 5: ctx.textAlign = 'center'; ctx.fillStyle = selected ? '#ff4444' : 'rgba(255,68,68,0.6)'; ctx.fillText('RESET PROGRESS', w / 2, y); break;
                 case 6: ctx.textAlign = 'center'; ctx.fillStyle = selected ? '#4488ff' : 'rgba(255,255,255,0.7)'; ctx.fillText('Back', w / 2, y); break;
             }
         }
         ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '12px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('Use Arrow Keys / WASD to navigate, Enter/Space to toggle', w / 2, h - 20);
+        ctx.fillText('Use Arrow Keys / WASD to navigate, Enter/Space to toggle', w / 2, h - this.sy(20));
         ctx.restore();
     }
 
@@ -269,37 +277,37 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 15; ctx.shadowColor = '#ffd700';
-        ctx.font = 'bold 28px monospace'; ctx.fillText('ACCOUNT', w / 2, 50);
+        ctx.font = 'bold 28px monospace'; ctx.fillText('ACCOUNT', w / 2, this.sy(50));
         ctx.shadowBlur = 0;
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px monospace';
-        ctx.fillText('Login', w / 2, 100);
+        ctx.fillText('Login', w / 2, this.sy(100));
         ctx.font = '14px monospace';
         ctx.fillStyle = '#88bbff'; ctx.textAlign = 'left';
-        ctx.fillText('Email:', 350, 135);
+        ctx.fillText('Email:', this.sx(350), this.sy(135));
         ctx.strokeStyle = this.loginField === 'username' ? '#4488ff' : 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2; ctx.strokeRect(480, 123, 250, 26);
+        ctx.lineWidth = 2; ctx.strokeRect(this.sx(480), this.sy(123), this.sw(250), this.sh(26));
         ctx.fillStyle = this.loginField === 'username' ? '#ffffff' : 'rgba(255,255,255,0.6)';
         const loginDisplay = this.loginInput ? this.loginInput : (this.loginField === 'username' ? '|' : '');
-        ctx.fillText(loginDisplay, 486, 137);
+        ctx.fillText(loginDisplay, this.sx(486), this.sy(137));
         ctx.fillStyle = '#88bbff';
-        ctx.fillText('Password:', 350, 175);
+        ctx.fillText('Password:', this.sx(350), this.sy(175));
         ctx.strokeStyle = this.loginField === 'password' ? '#4488ff' : 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2; ctx.strokeRect(480, 163, 250, 26);
+        ctx.lineWidth = 2; ctx.strokeRect(this.sx(480), this.sy(163), this.sw(250), this.sh(26));
         ctx.fillStyle = this.loginField === 'password' ? '#ffffff' : 'rgba(255,255,255,0.6)';
         const passDisplay = '*'.repeat(this.passInput.length) + (this.loginField === 'password' ? '|' : '');
-        ctx.fillText(passDisplay, 486, 177);
+        ctx.fillText(passDisplay, this.sx(486), this.sy(177));
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
         ctx.font = '11px monospace';
-        ctx.fillText('Tab to switch field | Enter to login', w / 2, 210);
+        ctx.fillText('Tab to switch field | Enter to login', w / 2, this.sy(210));
         ctx.fillStyle = this.accountMessageColor; ctx.font = '14px monospace';
-        ctx.fillText(this.accountMessage, w / 2, 240);
+        ctx.fillText(this.accountMessage, w / 2, this.sy(240));
         ctx.fillStyle = '#4488ff'; ctx.font = 'bold 18px monospace';
-        ctx.fillText('[ Login ]', w / 2, 280);
+        ctx.fillText('[ Login ]', w / 2, this.sy(280));
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '16px monospace';
-        ctx.fillText('[ Register ]', w / 2, 320);
+        ctx.fillText('[ Register ]', w / 2, this.sy(320));
         ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '14px monospace';
-        ctx.fillText('[ Back ]', w / 2, 360);
+        ctx.fillText('[ Back ]', w / 2, this.sy(360));
         ctx.restore();
     }
 
@@ -309,41 +317,41 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 15; ctx.shadowColor = '#ffd700';
-        ctx.font = 'bold 28px monospace'; ctx.fillText('REGISTER', w / 2, 50);
+        ctx.font = 'bold 28px monospace'; ctx.fillText('REGISTER', w / 2, this.sy(50));
         ctx.shadowBlur = 0;
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px monospace';
-        ctx.fillText('Create Account', w / 2, 100);
+        ctx.fillText('Create Account', w / 2, this.sy(100));
         ctx.font = '14px monospace';
         ctx.fillStyle = '#88bbff'; ctx.textAlign = 'left';
-        ctx.fillText('Email:', 300, 135);
+        ctx.fillText('Email:', this.sx(300), this.sy(135));
         ctx.strokeStyle = this.registerField === 'username' ? '#4488ff' : 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2; ctx.strokeRect(420, 123, 250, 26);
+        ctx.lineWidth = 2; ctx.strokeRect(this.sx(420), this.sy(123), this.sw(250), this.sh(26));
         ctx.fillStyle = this.registerField === 'username' ? '#ffffff' : 'rgba(255,255,255,0.6)';
         const regDisplay = this.registerInput ? this.registerInput : (this.registerField === 'username' ? '|' : '');
-        ctx.fillText(regDisplay, 426, 137);
+        ctx.fillText(regDisplay, this.sx(426), this.sy(137));
         ctx.fillStyle = '#88bbff';
-        ctx.fillText('Password:', 300, 175);
+        ctx.fillText('Password:', this.sx(300), this.sy(175));
         ctx.strokeStyle = this.registerField === 'password' ? '#4488ff' : 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2; ctx.strokeRect(420, 163, 250, 26);
+        ctx.lineWidth = 2; ctx.strokeRect(this.sx(420), this.sy(163), this.sw(250), this.sh(26));
         ctx.fillStyle = this.registerField === 'password' ? '#ffffff' : 'rgba(255,255,255,0.6)';
         const regPassDisplay = '*'.repeat(this.registerPassInput.length) + (this.registerField === 'password' ? '|' : '');
-        ctx.fillText(regPassDisplay, 426, 177);
+        ctx.fillText(regPassDisplay, this.sx(426), this.sy(177));
         ctx.fillStyle = '#88bbff';
-        ctx.fillText('Confirm:', 300, 215);
+        ctx.fillText('Confirm:', this.sx(300), this.sy(215));
         ctx.strokeStyle = this.registerField === 'confirm' ? '#4488ff' : 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2; ctx.strokeRect(420, 203, 250, 26);
+        ctx.lineWidth = 2; ctx.strokeRect(this.sx(420), this.sy(203), this.sw(250), this.sh(26));
         ctx.fillStyle = this.registerField === 'confirm' ? '#ffffff' : 'rgba(255,255,255,0.6)';
         const confirmDisplay = '*'.repeat(this.registerPassConfirm.length) + (this.registerField === 'confirm' ? '|' : '');
-        ctx.fillText(confirmDisplay, 426, 217);
+        ctx.fillText(confirmDisplay, this.sx(426), this.sy(217));
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '11px monospace';
-        ctx.fillText('Tab to switch field | Enter to register', w / 2, 250);
+        ctx.fillText('Tab to switch field | Enter to register', w / 2, this.sy(250));
         ctx.fillStyle = this.accountMessageColor; ctx.font = '14px monospace';
-        ctx.fillText(this.accountMessage, w / 2, 280);
+        ctx.fillText(this.accountMessage, w / 2, this.sy(280));
         ctx.fillStyle = '#00ff88'; ctx.font = 'bold 18px monospace';
-        ctx.fillText('[ Create Account ]', w / 2, 320);
+        ctx.fillText('[ Create Account ]', w / 2, this.sy(320));
         ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '14px monospace';
-        ctx.fillText('[ Back ]', w / 2, 360);
+        ctx.fillText('[ Back ]', w / 2, this.sy(360));
         ctx.restore();
     }
 
@@ -354,23 +362,23 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 15; ctx.shadowColor = '#ffd700';
-        ctx.font = 'bold 28px monospace'; ctx.fillText('PROFILE', w / 2, 50);
+        ctx.font = 'bold 28px monospace'; ctx.fillText('PROFILE', w / 2, this.sy(50));
         ctx.shadowBlur = 0;
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px monospace';
-        ctx.fillText(storage.getUsername(), w / 2, 95);
+        ctx.fillText(storage.getUsername(), w / 2, this.sy(95));
         ctx.fillStyle = '#ffd700'; ctx.font = '16px monospace';
-        ctx.fillText(`Coins: ${storage.get('coins')}`, w / 2, 130);
+        ctx.fillText(`Coins: ${storage.get('coins')}`, w / 2, this.sy(130));
         ctx.fillStyle = '#88bbff'; ctx.font = '16px monospace';
-        ctx.fillText(`High Score: ${storage.get('highScore')}`, w / 2, 160);
+        ctx.fillText(`High Score: ${storage.get('highScore')}`, w / 2, this.sy(160));
         ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = '14px monospace';
-        ctx.fillText(`Total Kills: ${storage.get('totalKills')}`, w / 2, 190);
-        ctx.fillText(`Planes Unlocked: ${storage.get('unlockedPlanes').length}/5`, w / 2, 215);
+        ctx.fillText(`Total Kills: ${storage.get('totalKills')}`, w / 2, this.sy(190));
+        ctx.fillText(`Planes Unlocked: ${storage.get('unlockedPlanes').length}/5`, w / 2, this.sy(215));
         ctx.fillStyle = '#00ff88'; ctx.font = 'bold 18px monospace';
-        ctx.fillText('[ Logout ]', w / 2, 280);
+        ctx.fillText('[ Logout ]', w / 2, this.sy(280));
         ctx.fillStyle = '#ff4444'; ctx.font = 'bold 16px monospace';
-        ctx.fillText('[ Delete Account ]', w / 2, 320);
+        ctx.fillText('[ Delete Account ]', w / 2, this.sy(320));
         ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '14px monospace';
-        ctx.fillText('[ Back ]', w / 2, 360);
+        ctx.fillText('[ Back ]', w / 2, this.sy(360));
         ctx.restore();
     }
 
@@ -381,7 +389,7 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#4488ff'; ctx.shadowBlur = 15; ctx.shadowColor = '#4488ff';
-        ctx.font = 'bold 32px monospace'; ctx.fillText('ABOUT', w / 2, 50);
+        ctx.font = 'bold 32px monospace'; ctx.fillText('ABOUT', w / 2, this.sy(50));
         ctx.shadowBlur = 0;
         const lines = [
             { text: 'SPACE STRIKE', color: '#ffffff', size: 'bold 20px' },
@@ -413,16 +421,16 @@ class SkyUI {
             { text: '', color: '#ffffff', size: '14px' },
             { text: 'All Rights Reserved ~@Anuj Thakur', color: '#ffd700', size: 'bold 12px' },
         ];
-        let y = 95;
+        let y = this.sy(95);
         lines.forEach(line => {
             ctx.fillStyle = line.color;
             ctx.font = line.size + ' monospace';
             ctx.textAlign = 'center';
             ctx.fillText(line.text, w / 2, y);
-            y += line.text ? 21 : 10;
+            y += line.text ? this.sy(21) : this.sy(10);
         });
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '14px monospace';
-        ctx.fillText('[ Back ]', w / 2, h - 30);
+        ctx.fillText('[ Back ]', w / 2, h - this.sy(30));
         ctx.restore();
     }
 
@@ -433,9 +441,9 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 15; ctx.shadowColor = '#ffd700';
-        ctx.font = 'bold 28px monospace'; ctx.fillText('SELECT PLANE', w / 2, 50);
+        ctx.font = 'bold 28px monospace'; ctx.fillText('SELECT PLANE', w / 2, this.sy(50));
         ctx.shadowBlur = 0;
-        const startY = 90; const itemH = 50;
+        const startY = this.sy(90); const itemH = this.sy(50);
         const storage = this.game.storage;
         for (let i = 0; i < this.planeItems.length; i++) {
             const y = startY + i * itemH;
@@ -446,15 +454,15 @@ class SkyUI {
             if (selected) { ctx.fillStyle = '#4488ff'; ctx.shadowBlur = 8; ctx.shadowColor = '#4488ff'; }
             else { ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.6)'; }
             ctx.font = selected ? 'bold 18px monospace' : '16px monospace';
-            ctx.fillText(this.planeItems[i], 80, y);
-            if (equipped) { ctx.fillStyle = '#00ff00'; ctx.shadowBlur = 0; ctx.font = '14px monospace'; ctx.fillText('EQUIPPED', w - 150, y); }
-            else if (unlocked) { ctx.fillStyle = '#88bbff'; ctx.shadowBlur = 0; ctx.font = '14px monospace'; ctx.fillText('UNLOCKED', w - 150, y); }
-            else { ctx.fillStyle = '#ff4444'; ctx.shadowBlur = 0; ctx.font = '14px monospace'; ctx.fillText(`${this.planeCosts[i]} coins`, w - 150, y); }
+            ctx.fillText(this.planeItems[i], this.sx(80), y);
+            if (equipped) { ctx.fillStyle = '#00ff00'; ctx.shadowBlur = 0; ctx.font = '14px monospace'; ctx.fillText('EQUIPPED', w - this.sx(150), y); }
+            else if (unlocked) { ctx.fillStyle = '#88bbff'; ctx.shadowBlur = 0; ctx.font = '14px monospace'; ctx.fillText('UNLOCKED', w - this.sx(150), y); }
+            else { ctx.fillStyle = '#ff4444'; ctx.shadowBlur = 0; ctx.font = '14px monospace'; ctx.fillText(`${this.planeCosts[i]} coins`, w - this.sx(150), y); }
         }
         ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '12px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('Arrow keys to navigate, Enter to select/equip', w / 2, h - 40);
+        ctx.fillText('Arrow keys to navigate, Enter to select/equip', w / 2, h - this.sy(40));
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '14px monospace';
-        ctx.fillText('[ Back ]', w / 2, h - 15);
+        ctx.fillText('[ Back ]', w / 2, h - this.sy(15));
         ctx.restore();
     }
 
@@ -465,10 +473,10 @@ class SkyUI {
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center';
         ctx.fillStyle = '#00ff88'; ctx.shadowBlur = 15; ctx.shadowColor = '#00ff88';
-        ctx.font = 'bold 28px monospace'; ctx.fillText('UPGRADES', w / 2, 50);
+        ctx.font = 'bold 28px monospace'; ctx.fillText('UPGRADES', w / 2, this.sy(50));
         ctx.shadowBlur = 0; ctx.fillStyle = '#ffd700'; ctx.font = '16px monospace';
-        ctx.fillText(`Coins: ${this.game.player.coins}`, w / 2, 80);
-        const startY = 110; const itemH = 50;
+        ctx.fillText(`Coins: ${this.game.player.coins}`, w / 2, this.sy(80));
+        const startY = this.sy(110); const itemH = this.sy(50);
         const storage = this.game.storage;
         for (let i = 0; i < this.upgradeItems.length; i++) {
             const y = startY + i * itemH;
@@ -480,18 +488,18 @@ class SkyUI {
             ctx.shadowBlur = selected ? 8 : 0; ctx.shadowColor = '#00ff88';
             ctx.fillStyle = selected ? '#00ff88' : 'rgba(255,255,255,0.7)';
             ctx.font = selected ? 'bold 18px monospace' : '16px monospace';
-            ctx.fillText(`${this.upgradeItems[i]} Lv.${level}`, 80, y);
+            ctx.fillText(`${this.upgradeItems[i]} Lv.${level}`, this.sx(80), y);
             ctx.textAlign = 'right';
             ctx.fillStyle = canAfford ? '#ffd700' : '#ff4444';
             ctx.font = '14px monospace';
-            ctx.fillText(`${cost} coins`, w - 80, y);
-            ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(80, y + 8, w - 160, 6);
-            ctx.fillStyle = '#00ff88'; ctx.fillRect(80, y + 8, (w - 160) * (level / 10), 6);
+            ctx.fillText(`${cost} coins`, w - this.sx(80), y);
+            ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(this.sx(80), y + 8, w - this.sx(160), 6);
+            ctx.fillStyle = '#00ff88'; ctx.fillRect(this.sx(80), y + 8, (w - this.sx(160)) * (level / 10), 6);
         }
         ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '12px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('Arrow keys to navigate, Enter to buy', w / 2, h - 40);
+        ctx.fillText('Arrow keys to navigate, Enter to buy', w / 2, h - this.sy(40));
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '14px monospace';
-        ctx.fillText('[ Back ]', w / 2, h - 15);
+        ctx.fillText('[ Back ]', w / 2, h - this.sy(15));
         ctx.restore();
     }
 
@@ -500,57 +508,58 @@ class SkyUI {
         ctx.save();
         ctx.textBaseline = 'top';
 
-        ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0, 0, w, 95);
-        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, h - 30, w, 30);
+        const hudH = this.sy(95);
+        ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0, 0, w, hudH);
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, h - this.sy(30), w, this.sy(30));
 
         ctx.shadowBlur = 5; ctx.shadowColor = '#000000';
-        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(10, 10, 200, 16);
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(this.sx(10), this.sy(10), this.sw(200), this.sh(16));
         ctx.shadowBlur = 0;
         const hpRatio = p.health / p.maxHealth;
-        const hpGrad = ctx.createLinearGradient(12, 0, 208, 0);
+        const hpGrad = ctx.createLinearGradient(this.sx(12), 0, this.sx(208), 0);
         hpGrad.addColorStop(0, '#ff4444');
         hpGrad.addColorStop(0.5, '#ff8800');
         hpGrad.addColorStop(1, '#44ff44');
-        ctx.fillStyle = hpGrad; ctx.fillRect(12, 12, 196 * hpRatio, 12);
+        ctx.fillStyle = hpGrad; ctx.fillRect(this.sx(12), this.sy(12), this.sw(196) * hpRatio, this.sh(12));
         ctx.shadowBlur = 8; ctx.shadowColor = hpRatio > 0.5 ? '#44ff44' : '#ff4444';
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
-        ctx.fillText(`HP: ${Math.ceil(p.health)}/${p.maxHealth}`, 110, 11);
+        ctx.fillText(`HP: ${Math.ceil(p.health)}/${p.maxHealth}`, this.sx(110), this.sy(11));
         ctx.shadowBlur = 0;
         if (p.shield > 0) {
-            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(10, 30, 200, 10);
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(this.sx(10), this.sy(30), this.sw(200), this.sh(10));
             ctx.shadowBlur = 6; ctx.shadowColor = '#00ffff';
-            ctx.fillStyle = '#00ffff'; ctx.fillRect(12, 32, 196 * (p.shield / p.maxShield), 6);
+            ctx.fillStyle = '#00ffff'; ctx.fillRect(this.sx(12), this.sy(32), this.sw(196) * (p.shield / p.maxShield), this.sh(6));
             ctx.shadowBlur = 0;
         }
         ctx.shadowBlur = 4; ctx.shadowColor = '#000000';
         ctx.textAlign = 'right'; ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px monospace';
-        ctx.fillText(`SCORE: ${p.score}`, w - 15, 10);
+        ctx.fillText(`SCORE: ${p.score}`, w - this.sx(15), this.sy(10));
         ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6;
         ctx.font = 'bold 14px monospace';
-        ctx.fillText(`COINS: ${p.coins}`, w - 15, 32);
+        ctx.fillText(`COINS: ${p.coins}`, w - this.sx(15), this.sy(32));
         ctx.shadowBlur = 0;
         ctx.textAlign = 'left'; ctx.fillStyle = p.getWeaponColor(); ctx.font = 'bold 12px monospace';
         ctx.shadowBlur = 4; ctx.shadowColor = '#000000';
-        ctx.fillText(`WPN: ${p.getWeaponLabel()}`, 10, 52);
+        ctx.fillText(`WPN: ${p.getWeaponLabel()}`, this.sx(10), this.sy(52));
         ctx.fillStyle = '#88bbff'; ctx.font = 'bold 12px monospace';
-        ctx.fillText(`LVL: ${this.game.currentLevel}`, 10, 70);
-        ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillText(`KILLS: ${p.kills}`, 10, 86);
+        ctx.fillText(`LVL: ${this.game.currentLevel}`, this.sx(10), this.sy(70));
+        ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillText(`KILLS: ${p.kills}`, this.sx(10), this.sy(86));
         ctx.shadowBlur = 0;
 
         if (p.doubleDamageTimer > 0) {
-            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(w/2-80, 50, 160, 22);
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(w/2-this.sw(80), this.sy(50), this.sw(160), this.sh(22));
             ctx.shadowBlur = 10; ctx.shadowColor = '#ff4400';
             ctx.fillStyle = '#ff4400'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
-            ctx.fillText(`2X DMG ${Math.ceil(p.doubleDamageTimer)}s`, w / 2, 53);
+            ctx.fillText(`2X DMG ${Math.ceil(p.doubleDamageTimer)}s`, w / 2, this.sy(53));
             ctx.shadowBlur = 0;
         }
         if (p.rapidFireTimer > 0) {
-            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(w/2-80, 72, 160, 22);
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(w/2-this.sw(80), this.sy(72), this.sw(160), this.sh(22));
             ctx.fillStyle = '#ffff00'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
-            ctx.fillText(`RAPID ${Math.ceil(p.rapidFireTimer)}s`, w / 2, 75);
+            ctx.fillText(`RAPID ${Math.ceil(p.rapidFireTimer)}s`, w / 2, this.sy(75));
         }
         ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '11px monospace';
-        ctx.fillText(`ENEMIES: ${this.game.enemyManager.getCount()}`, 10, h - 24);
+        ctx.fillText(`ENEMIES: ${this.game.enemyManager.getCount()}`, this.sx(10), h - this.sy(24));
         ctx.restore();
     }
 
@@ -559,7 +568,7 @@ class SkyUI {
         const ctx = this.ctx; const w = this.canvas.width; const boss = this.game.boss;
         ctx.save();
         ctx.textBaseline = 'middle';
-        const barW = Math.min(400, w - 40); const barX = (w - barW) / 2; const barY = 45;
+        const barW = Math.min(this.sw(400), w - this.sx(40)); const barX = (w - barW) / 2; const barY = this.sy(45);
         ctx.shadowBlur = 0;
         ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(barX, barY, barW, 14);
         if (boss.shieldHealth > 0) {
@@ -607,12 +616,12 @@ class SkyUI {
             `Level Reached: ${this.game.currentLevel}`, `Plane: ${p.planeId}`
         ];
         const startY = h * 0.3;
-        stats.forEach((stat, i) => { ctx.fillStyle = i === 0 ? '#ffd700' : '#ffffff'; ctx.fillText(stat, w / 2, startY + i * 30); });
+        stats.forEach((stat, i) => { ctx.fillStyle = i === 0 ? '#ffd700' : '#ffffff'; ctx.fillText(stat, w / 2, startY + i * this.sy(30)); });
         const btnY = h * 0.75;
         ctx.shadowBlur = 10; ctx.shadowColor = '#4488ff';
         ctx.font = 'bold 20px monospace'; ctx.fillStyle = '#4488ff'; ctx.fillText('[ Play Again ]', w / 2, btnY);
         ctx.shadowBlur = 0; ctx.font = 'bold 16px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillText('[ Main Menu ]', w / 2, btnY + 40);
+        ctx.fillText('[ Main Menu ]', w / 2, btnY + this.sy(40));
         ctx.restore();
     }
 
@@ -621,9 +630,9 @@ class SkyUI {
         ctx.save(); ctx.textBaseline = 'middle';
         ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, w, h);
         ctx.textAlign = 'center'; ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 20; ctx.shadowColor = '#ffffff';
-        ctx.font = 'bold 36px monospace'; ctx.fillText('PAUSED', w / 2, h / 2 - 20);
+        ctx.font = 'bold 36px monospace'; ctx.fillText('PAUSED', w / 2, this.sy(430));
         ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = 'bold 16px monospace';
-        ctx.fillText('Press P or ESC to resume', w / 2, h / 2 + 20);
+        ctx.fillText('Press P or ESC to resume', w / 2, this.sy(470));
         ctx.restore();
     }
 
@@ -645,27 +654,28 @@ class SkyUI {
         const ctx = this.ctx; const ctrl = this.game.controls; const jd = ctrl.getJoystickData();
         const w = this.canvas.width; const h = this.canvas.height;
         ctx.save();
-        const jx = 120; const jy = h - 130; const jr = 65;
+        const jr = this.sw(65);
+        const jx = this.sx(120); const jy = h - this.sy(130);
         if (jd.active) {
             ctx.globalAlpha = 0.4; ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(jd.centerX, jd.centerY, jd.baseRadius, 0, Math.PI * 2); ctx.stroke();
             ctx.globalAlpha = 0.4; ctx.fillStyle = 'rgba(255,255,255,0.2)';
             ctx.beginPath(); ctx.arc(jd.centerX, jd.centerY, jd.baseRadius, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 0.6; ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.beginPath(); ctx.arc(jd.knobX, jd.knobY, 22, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(jd.knobX, jd.knobY, this.sw(22), 0, Math.PI * 2); ctx.fill();
             ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(jd.knobX, jd.knobY, 22, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(jd.knobX, jd.knobY, this.sw(22), 0, Math.PI * 2); ctx.stroke();
         } else {
             ctx.globalAlpha = 0.25; ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.stroke();
             ctx.globalAlpha = 0.15; ctx.fillStyle = 'rgba(255,255,255,0.1)';
             ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 0.15; ctx.fillStyle = 'rgba(255,255,255,0.15)';
-            ctx.beginPath(); ctx.arc(jx, jy, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(jx, jy, this.sw(15), 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 0.15; ctx.font = '18px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillStyle = '#ffffff'; ctx.fillText('+', jx, jy);
         }
-        const fbX = w - 80; const fbY = h - 120; const fbR = 40;
+        const fbX = w - this.sw(80); const fbY = h - this.sy(120); const fbR = this.sw(40);
         ctx.globalAlpha = ctrl.firePressed ? 0.7 : 0.35;
         ctx.fillStyle = '#ff4444'; ctx.beginPath(); ctx.arc(fbX, fbY, fbR, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
@@ -674,7 +684,7 @@ class SkyUI {
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('FIRE', fbX, fbY);
         ctx.globalAlpha = 0.4; ctx.fillStyle = '#ffffff'; ctx.font = '24px monospace'; ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
-        ctx.fillText('∥', w - 28, 28);
+        ctx.fillText('∥', w - this.sw(28), this.sy(28));
         ctx.restore();
     }
 

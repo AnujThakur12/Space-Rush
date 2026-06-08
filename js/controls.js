@@ -8,10 +8,12 @@ class SkyControls {
         this.pausePressed = false;
         this.joystickTouchId = null;
         this.fireTouchId = null;
-        this.joystickCenter = { x: 120, y: 0 };
+        this.joystickCenter = { x: 0, y: 0 };
         this.joystickRadius = 65;
         this.joystickBaseRadius = 65;
+        this.joystickBaseRadiusRef = 65;
         this.mobile = false;
+        this.autoFire = false;
 
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
@@ -25,6 +27,7 @@ class SkyControls {
 
     _detectMobile() {
         this.mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        if (this.mobile) this.autoFire = true;
     }
 
     _addListeners() {
@@ -73,7 +76,10 @@ class SkyControls {
             const x = (touch.clientX - rect.left) * scaleX;
             const y = (touch.clientY - rect.top) * scaleY;
 
-            this.joystickCenter.y = this.canvas.height - 130;
+            this.joystickCenter.x = 0.075 * this.canvas.width;
+            this.joystickCenter.y = this.canvas.height - this.canvas.height * 0.145;
+            this.joystickRadius = this.joystickBaseRadiusRef * (this.canvas.width / 1600);
+            this.joystickBaseRadius = this.joystickRadius;
 
             if (x < this.canvas.width * 0.4) {
                 this.joystickTouchId = touch.identifier;
@@ -87,7 +93,7 @@ class SkyControls {
                 this.firePressed = true;
             }
 
-            if (x < 60 && y < 60) {
+            if (x < this.canvas.width * 0.04 && y < this.canvas.height * 0.07) {
                 this.pausePressed = true;
             }
         }
@@ -161,7 +167,7 @@ class SkyControls {
     }
 
     isFiring() {
-        return this.isDown(' ') || this.firePressed;
+        return this.isDown(' ') || this.firePressed || this.autoFire;
     }
 
     resetFire() { this.firePressed = false; }

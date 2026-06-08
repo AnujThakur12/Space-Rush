@@ -34,7 +34,7 @@ class PlayerBullet {
         this.y += this.vy * dt;
         this.lifetime -= dt;
         if (this.type === 'rocket') this.trailTimer += dt;
-        if (this.lifetime <= 0 || this.x < -50 || this.x > 2050 || this.y < -50 || this.y > 1250) {
+        if (this.lifetime <= 0 || this.x < -200 || this.x > 2000 || this.y < -200 || this.y > 2000) {
             this.active = false;
         }
     }
@@ -125,7 +125,7 @@ class EnemyBullet {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.lifetime -= dt;
-        if (this.lifetime <= 0 || this.x < -50 || this.x > 2050 || this.y < -50 || this.y > 1250) {
+        if (this.lifetime <= 0 || this.x < -200 || this.x > 2000 || this.y < -200 || this.y > 2000) {
             this.active = false;
         }
     }
