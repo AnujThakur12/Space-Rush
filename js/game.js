@@ -179,6 +179,87 @@ class SkyStrike {
             }
         });
 
+        this.canvas.addEventListener('touchend', async (e) => {
+            e.preventDefault();
+            if (this.state === 'playing') return;
+            const touch = e.changedTouches[0];
+            if (!touch) return;
+            const W = this.canvas.width, H = this.canvas.height;
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = W / rect.width;
+            const scaleY = H / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+            const sy = (v) => (v / 900) * H;
+            const sx = (v) => (v / 1600) * W;
+
+            if (this.state === 'menu') {
+                const startY = H * 0.45; const itemH = sy(42);
+                for (let i = 0; i < this.ui.menuItems.length; i++) {
+                    const itemY = startY + i * itemH;
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) { this.ui.menuSelected = i; this.audio.playMenuClick(); this._handleMenuSelect(i); return; }
+                }
+            }
+
+            if (this.gameOver) {
+                const btnY = H * 0.75;
+                if (y > btnY - sy(20) && y < btnY + sy(20)) { this.restartGame(); return; }
+                if (y > btnY + sy(25) && y < btnY + sy(60)) { this.state = 'menu'; this.gameOver = false; this.audio.stopMusic(); return; }
+            }
+
+            if (this.state === 'plane_select') {
+                const startY = sy(90); const itemH = sy(50);
+                for (let i = 0; i < this.ui.planeItems.length; i++) {
+                    const itemY = startY + i * itemH;
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) { this.ui.planeMenuSelected = i; this._handlePlaneSelect(i); return; }
+                }
+            }
+
+            if (this.state === 'upgrade') {
+                const startY = sy(110); const itemH = sy(50);
+                for (let i = 0; i < this.ui.upgradeItems.length; i++) {
+                    const itemY = startY + i * itemH;
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) { this.ui.upgradeMenuSelected = i; this._handleUpgradeBuy(i); return; }
+                }
+            }
+
+            if (this.state === 'settings') {
+                const startY = sy(120); const itemH = sy(45);
+                for (let i = 0; i < this.ui.settingsItems.length; i++) {
+                    const itemY = startY + i * itemH;
+                    if (y > itemY - sy(20) && y < itemY + sy(20)) {
+                        if (i === 5) { this._handleSettingsSelect(5); return; }
+                        if (i === 6) { this.state = 'menu'; return; }
+                        this.ui.settingsMenuSelected = i;
+                        if (i <= 1) {
+                            const settings = this.storage.getSettings();
+                            if (x > W / 2 - sx(50)) settings[i === 0 ? 'musicVolume' : 'sfxVolume'] = Math.min(1, (settings[i === 0 ? 'musicVolume' : 'sfxVolume'] || 0.5) + 0.1);
+                            else settings[i === 0 ? 'musicVolume' : 'sfxVolume'] = Math.max(0, (settings[i === 0 ? 'musicVolume' : 'sfxVolume'] || 0.5) - 0.1);
+                            this.storage.updateSettings(settings);
+                            this.audio.setMusicVolume(settings.musicVolume);
+                            this.audio.setSfxVolume(settings.sfxVolume);
+                        } else {
+                            const dir = x > W / 2 ? 1 : -1;
+                            this._handleSettingsAdjust(dir);
+                        }
+                        return;
+                    }
+                }
+            }
+
+            if (this.state === 'highscores' || this.state === 'about') {
+                if (y > H - sy(50)) { this.state = 'menu'; this.audio.playMenuClick(); return; }
+            }
+
+            if (this.state === 'plane_select' || this.state === 'upgrade') {
+                if (y > H - sy(40)) { this.state = 'menu'; this.audio.playMenuClick(); return; }
+            }
+
+            if (this.state === 'account') {
+                this._handleAccountClick(x, y);
+            }
+        });
+
         this.canvas.addEventListener('click', async (e) => {
             const W = this.canvas.width, H = this.canvas.height;
             const rect = this.canvas.getBoundingClientRect();
