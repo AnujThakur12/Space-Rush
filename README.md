@@ -1,103 +1,43 @@
-# SkyStrike: Air Supremacy
+# Space Strike — Endless Space
 
-A modern arcade-style 2D plane shooting game built with pure HTML5 Canvas and vanilla JavaScript.
+A modern arcade-style 2D space shooter. Endless levels, epic boss battles, unlockable planes, upgrade systems, and cloud accounts.
+
+## Play Now
+
+**[spacestrike.netlify.app](https://spacestrike.netlify.app/)**
 
 ## Features
 
-- **5 Enemy Types** - Drone, Fighter, Bomber, Stealth Jet, Elite Enemy
-- **4 Epic Boss Battles** - Missile Commander, Fortress Bomber, Stealth Titan, Air Carrier
-- **5 Weapon Systems** - Machine Gun, Laser Cannon, Rockets, Plasma Cannon, Triple Shot
-- **6 Power-ups** - Health, Shield, Double Damage, Rapid Fire, Coin Magnet, Extra Life
-- **5 Unlockable Planes** - Falcon, Eagle, Raptor, Phantom, Stealth-X
-- **Upgrade System** - Health, Damage, Speed, Fire Rate, Armor
-- **5 Dynamic Levels** - Desert, Ocean, City, Snow, Space
-- **Local Leaderboard** - Top 10 scores with persistence
-- **Save System** - Progress, settings, and unlocks via localStorage
-- **Mobile Support** - Touch joystick, fire button, multi-touch
-- **Responsive Design** - Works on all screen sizes and orientations
-- **Delta-Time Game Loop** - Smooth 60+ FPS on all refresh rates
-
-## Quick Start
-
-Open `index.html` in any modern browser. No build tools or servers required.
-
-```bash
-# Clone the repository
-git clone <repo-url>
-
-# Open the game
-open index.html
-# or serve locally:
-python3 -m http.server 8080
-# then visit http://localhost:8080
-```
+- **Endless Levels** — Infinite procedural difficulty scaling
+- **5 Enemy Types** — Drone, Fighter, Bomber, Stealth Jet, Elite
+- **4 Epic Bosses** — Cycles every 5 levels with stat multipliers
+- **5 Weapon Systems** — Machine Gun, Laser, Rockets, Plasma, Triple Shot
+- **6 Power-ups** — Health, Shield, Double Damage, Rapid Fire, Coin Magnet, Extra Life
+- **5 Unlockable Planes** — Falcon, Eagle, Raptor, Phantom, Stealth-X
+- **Upgrade System** — 10 levels each for Health, Damage, Speed, Fire Rate, Armor
+- **Cloud Accounts** — Register with Gmail, save progress across devices
+- **Mobile Controls** — Virtual joystick + fire button + multi-touch
+- **Parallax Background** — 10 color schemes with shooting stars
+- **Visual Effects** — Glow, particles, screen shake, hit flashes
 
 ## Controls
 
-### Desktop
 | Key | Action |
 |-----|--------|
-| W / Arrow Up | Move Up |
-| S / Arrow Down | Move Down |
-| A / Arrow Left | Move Left |
-| D / Arrow Right | Move Right |
-| Space | Shoot |
+| WASD / Arrows | Move |
+| Space / Click | Shoot |
 | P | Pause |
+| ESC | Pause / Back to menu |
 
-### Mobile
-- **Left side** - Virtual joystick for movement
-- **Right side** - Fire button
-- **Top right** - Pause button
+**Mobile:** Left joystick to move, right button to fire.
 
-## Deployment
+## Tech
 
-Works out of the box on:
-- **GitHub Pages** - Push and enable Pages
-- **Netlify** - Drag-and-drop the folder
-- **Vercel** - Deploy with zero configuration
-
-No backend, build steps, or dependencies required.
-
-## Architecture
-
-```
-skystrike/
-  index.html          - Entry point
-  css/
-    style.css         - All styles, responsive layout
-  js/
-    storage.js        - localStorage save/load system
-    audio.js          - Web Audio API sound synthesis
-    controls.js       - Keyboard + touch input handling
-    collision.js      - Collision detection utilities
-    effects.js        - Particle system & visual effects
-    bullet.js         - Projectile system & weapon types
-    player.js         - Player entity & stats
-    enemy.js          - 5 enemy types with unique AI
-    boss.js           - 4 boss types with attack patterns
-    powerups.js       - Power-up drops & effects
-    ui.js             - Menus, HUD, all rendering
-    game.js           - Game loop, state, orchestrator
-```
-
-All graphics are procedurally drawn via Canvas API. All sounds are synthesized with Web Audio API. Zero external assets required.
-
-## Technical Highlights
-
-- **Delta Time (dt)** - Frame-rate independent movement
-- **requestAnimationFrame** - Smooth vsync-aligned rendering
-- **Canvas 2D** - No WebGL, pure 2D rendering
-- **Object-Oriented** - Clean class-based architecture
-- **Modular Design** - Each system is independently maintainable
-- **Memory Safe** - Object pooling and cleanup to prevent leaks
-
-## Browser Support
-
-- Chrome/Edge (desktop & mobile)
-- Firefox
-- Safari (desktop & mobile)
-- Samsung Internet
-- Opera
+- **Canvas 2D** — No WebGL, no dependencies
+- **Web Audio API** — OGG playback + synthesized fallback
+- **Netlify Functions** — Serverless auth + data persistence
+- **bcryptjs** — Password hashing (never stored in plaintext)
+- **JWT** — Session tokens (30-day expiry)
 
 ## License
 
