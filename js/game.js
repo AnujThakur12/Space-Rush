@@ -84,14 +84,15 @@ class SkyStrike {
     }
 
     _resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const winW = window.innerWidth;
         const winH = window.innerHeight;
         const isMobile = winW < winH;
         if (isMobile) {
-            this.canvas.height = Math.min(winH, 960);
+            this.canvas.height = Math.min(winH, 960) * dpr;
             this.canvas.width = Math.round(this.canvas.height * 9 / 16);
         } else {
-            this.canvas.width = Math.min(winW, 1600);
+            this.canvas.width = Math.min(winW, 1600) * dpr;
             this.canvas.height = Math.round(this.canvas.width * 9 / 16);
         }
     }

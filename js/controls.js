@@ -7,7 +7,6 @@ class SkyControls {
         this.firePressed = false;
         this.pausePressed = false;
         this.joystickTouchId = null;
-        this.fireTouchId = null;
         this.joystickCenter = { x: 0, y: 0 };
         this.joystickRadius = 65;
         this.joystickBaseRadius = 65;
@@ -67,7 +66,6 @@ class SkyControls {
     }
 
     _onTouchStart(e) {
-        e.preventDefault();
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
@@ -88,9 +86,6 @@ class SkyControls {
                 this.joystick.y = this.joystickCenter.y;
                 this.joystick.dx = 0;
                 this.joystick.dy = 0;
-            } else if (x > this.canvas.width * 0.6) {
-                this.fireTouchId = touch.identifier;
-                this.firePressed = true;
             }
 
             if (x < this.canvas.width * 0.04 && y < this.canvas.height * 0.07) {
@@ -100,7 +95,6 @@ class SkyControls {
     }
 
     _onTouchMove(e) {
-        e.preventDefault();
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
@@ -123,25 +117,16 @@ class SkyControls {
                 this.joystick.dx = (this.joystick.x - this.joystickCenter.x) / maxDist;
                 this.joystick.dy = (this.joystick.y - this.joystickCenter.y) / maxDist;
             }
-
-            if (touch.identifier === this.fireTouchId) {
-                this.firePressed = x > this.canvas.width * 0.4;
-            }
         }
     }
 
     _onTouchEnd(e) {
-        e.preventDefault();
         for (const touch of e.changedTouches) {
             if (touch.identifier === this.joystickTouchId) {
                 this.joystickTouchId = null;
                 this.joystick.active = false;
                 this.joystick.dx = 0;
                 this.joystick.dy = 0;
-            }
-            if (touch.identifier === this.fireTouchId) {
-                this.fireTouchId = null;
-                this.firePressed = false;
             }
         }
     }

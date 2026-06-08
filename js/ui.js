@@ -675,13 +675,6 @@ class SkyUI {
             ctx.globalAlpha = 0.15; ctx.font = '18px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillStyle = '#ffffff'; ctx.fillText('+', jx, jy);
         }
-        const fbX = w - this.sw(80); const fbY = h - this.sy(120); const fbR = this.sw(40);
-        ctx.globalAlpha = ctrl.firePressed ? 0.7 : 0.35;
-        ctx.fillStyle = '#ff4444'; ctx.beginPath(); ctx.arc(fbX, fbY, fbR, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(fbX, fbY, fbR, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 0.8; ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px monospace';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('FIRE', fbX, fbY);
         ctx.globalAlpha = 0.4; ctx.fillStyle = '#ffffff'; ctx.font = '24px monospace'; ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
         ctx.fillText('∥', w - this.sw(28), this.sy(28));
