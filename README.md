@@ -41,4 +41,4 @@ A modern arcade-style 2D space shooter. Endless levels, epic boss battles, unloc
 
 ## License
 
-MIT
+All Rights Reserved ~@Anuj Thakur
