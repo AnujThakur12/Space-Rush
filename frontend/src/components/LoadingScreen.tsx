@@ -42,7 +42,7 @@ export function LoadingScreen({ onLoaded }: { onLoaded: () => void }) {
         letterSpacing: '0.2em',
         fontWeight: 700,
       }}>
-        SPACE STRIKE
+        SPACE RUSH
       </h1>
       <div style={{ color: '#88bbff', fontSize: '0.9rem', marginTop: 8, opacity: 0.7 }}>
         Endless Space

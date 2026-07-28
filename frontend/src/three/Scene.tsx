@@ -44,17 +44,13 @@ function SceneContent({ engine }: GameSceneProps) {
 
       {!isPlaying && (
         <group>
-          <mesh rotation={[0.3, 0.5, 0]} position={[0, 0, 0]}>
-            <dodecahedronGeometry args={[1.5, 0]} />
+          <mesh rotation={[0.5, 0.8, 0]} position={[0, 0, 0]}>
+            <icosahedronGeometry args={[2, 0]} />
             <meshStandardMaterial color="#4488ff" metalness={0.6} roughness={0.3} wireframe />
           </mesh>
           <mesh position={[0, 0, 0]}>
-            <dodecahedronGeometry args={[1.2, 0]} />
-            <meshStandardMaterial color="#4488ff" metalness={0.8} roughness={0.2} transparent opacity={0.3} />
-          </mesh>
-          <mesh position={[0, -2.5, 0]}>
-            <torusGeometry args={[2, 0.05, 8, 32]} />
-            <meshStandardMaterial color="#4488ff" metalness={0.6} roughness={0.3} />
+            <icosahedronGeometry args={[1.6, 0]} />
+            <meshStandardMaterial color="#4488ff" metalness={0.8} roughness={0.2} transparent opacity={0.15} />
           </mesh>
         </group>
       )}

@@ -25,7 +25,7 @@ export function MainMenu({ onStart }: MainMenuProps) {
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       zIndex: 10, fontFamily: "'Segoe UI', system-ui, sans-serif",
-      background: 'transparent',
+      background: 'rgba(0,0,0,0.85)',
     }}>
       <div style={{
         fontSize: 'clamp(2rem, 7vw, 4rem)',
@@ -35,7 +35,7 @@ export function MainMenu({ onStart }: MainMenuProps) {
         letterSpacing: '0.15em',
         marginBottom: 4,
       }}>
-        SPACE STRIKE
+        SPACE RUSH
       </div>
       <div style={{ color: '#88bbff', fontSize: '0.85rem', opacity: 0.7, marginBottom: 40 }}>
         Endless Space
