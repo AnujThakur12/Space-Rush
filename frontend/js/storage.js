@@ -1,6 +1,6 @@
 class SkyStorage {
     constructor() {
-        this.prefix = 'skystrike_';
+        this.prefix = 'spacerush_';
         this.sessionKey = this.prefix + 'session';
         this.tokenKey = this.prefix + 'api_token';
         this.defaults = {

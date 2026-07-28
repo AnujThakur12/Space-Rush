@@ -3,7 +3,7 @@ import './renderer3d.js';
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('game-container');
     const renderer3d = new Renderer3D(container);
-    const game = new SkyStrike(renderer3d);
+    const game = new SpaceRush(renderer3d);
     window.renderer3d = renderer3d;
     window.game = game;
 

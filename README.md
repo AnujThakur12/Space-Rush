@@ -1,4 +1,4 @@
-# Space Strike — Endless Space
+# Space Rush — Endless Space
 
 A modern arcade-style 2D space shooter. Endless levels, epic boss battles, unlockable planes, upgrade systems, and cloud accounts.
 

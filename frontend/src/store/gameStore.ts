@@ -149,7 +149,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setSettings: (s) => {
     const updated = { ...get().settings, ...s }
-    localStorage.setItem('skystrike_settings', JSON.stringify(updated))
+    localStorage.setItem('spacerush_settings', JSON.stringify(updated))
     set({ settings: updated })
   },
 
@@ -184,7 +184,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
 function loadSettings(): GameSettings {
   try {
-    const raw = localStorage.getItem('skystrike_settings')
+    const raw = localStorage.getItem('spacerush_settings')
     if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
   } catch {}
   return { ...DEFAULT_SETTINGS }
@@ -192,7 +192,7 @@ function loadSettings(): GameSettings {
 
 function loadHighScore(): number {
   try {
-    const raw = localStorage.getItem('skystrike_highscore')
+    const raw = localStorage.getItem('spacerush_highscore')
     return raw ? parseInt(raw) || 0 : 0
   } catch {
     return 0

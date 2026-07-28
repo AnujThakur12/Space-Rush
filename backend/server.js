@@ -202,7 +202,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`SkyStrike server running on port ${PORT} [${IS_PROD ? 'PRODUCTION' : 'DEV'}]`);
+    console.log(`SpaceRush server running on port ${PORT} [${IS_PROD ? 'PRODUCTION' : 'DEV'}]`);
 });
 
 process.on('SIGTERM', () => { close(); process.exit(0); });

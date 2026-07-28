@@ -8,20 +8,20 @@ export class StorageManager {
   private _username = ''
 
   constructor() {
-    this.token = localStorage.getItem('skystrike_token')
-    this._username = localStorage.getItem('skystrike_username') || ''
+    this.token = localStorage.getItem('spacerush_token')
+    this._username = localStorage.getItem('spacerush_username') || ''
     this._loggedIn = !!this.token
   }
 
   get(key: string): any {
     try {
-      const raw = localStorage.getItem(`skystrike_${key}`)
+      const raw = localStorage.getItem(`spacerush_${key}`)
       return raw ? JSON.parse(raw) : null
     } catch { return null }
   }
 
   set(key: string, value: any): void {
-    localStorage.setItem(`skystrike_${key}`, JSON.stringify(value))
+    localStorage.setItem(`spacerush_${key}`, JSON.stringify(value))
   }
 
   getHighScore(): number {
@@ -81,7 +81,7 @@ export class StorageManager {
   }
 
   getSettings(): GameSettings {
-    const raw = localStorage.getItem('skystrike_settings')
+    const raw = localStorage.getItem('spacerush_settings')
     if (raw) return JSON.parse(raw)
     return {
       musicVolume: 0.5, sfxVolume: 0.7,
@@ -91,7 +91,7 @@ export class StorageManager {
   }
 
   saveSettings(s: GameSettings): void {
-    localStorage.setItem('skystrike_settings', JSON.stringify(s))
+    localStorage.setItem('spacerush_settings', JSON.stringify(s))
   }
 
   getStats(): GameStats {
@@ -139,8 +139,8 @@ export class StorageManager {
         this.token = data.token
         this._username = data.username || email
         this._loggedIn = true
-        localStorage.setItem('skystrike_token', data.token)
-        localStorage.setItem('skystrike_username', this._username)
+        localStorage.setItem('spacerush_token', data.token)
+        localStorage.setItem('spacerush_username', this._username)
         return { ok: true }
       }
       return { ok: false, error: data.error || 'Login failed' }
@@ -162,8 +162,8 @@ export class StorageManager {
         this.token = data.token
         this._username = data.username || email
         this._loggedIn = true
-        localStorage.setItem('skystrike_token', data.token)
-        localStorage.setItem('skystrike_username', this._username)
+        localStorage.setItem('spacerush_token', data.token)
+        localStorage.setItem('spacerush_username', this._username)
         return { ok: true }
       }
       return { ok: false, error: data.error || 'Registration failed' }
@@ -176,8 +176,8 @@ export class StorageManager {
     this.token = null
     this._loggedIn = false
     this._username = ''
-    localStorage.removeItem('skystrike_token')
-    localStorage.removeItem('skystrike_username')
+    localStorage.removeItem('spacerush_token')
+    localStorage.removeItem('spacerush_username')
   }
 
   async saveCloud(): Promise<boolean> {
@@ -232,16 +232,16 @@ export class StorageManager {
       if (!res.ok) return []
       return await res.json()
     } catch {
-      return JSON.parse(localStorage.getItem('skystrike_leaderboard') || '[]')
+      return JSON.parse(localStorage.getItem('spacerush_leaderboard') || '[]')
     }
   }
 
   addLocalLeaderboard(entry: LeaderboardEntry): void {
-    const lb = JSON.parse(localStorage.getItem('skystrike_leaderboard') || '[]')
+    const lb = JSON.parse(localStorage.getItem('spacerush_leaderboard') || '[]')
     lb.push(entry)
     lb.sort((a: any, b: any) => b.score - a.score)
     if (lb.length > 100) lb.length = 100
-    localStorage.setItem('skystrike_leaderboard', JSON.stringify(lb))
+    localStorage.setItem('spacerush_leaderboard', JSON.stringify(lb))
   }
 
   resetProgress(): void {

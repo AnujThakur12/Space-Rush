@@ -1,4 +1,4 @@
-class SkyStrike {
+class SpaceRush {
     constructor(renderer3d) {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
@@ -1025,4 +1025,4 @@ class SkyStrike {
     }
 }
 
-window.SkyStrike = SkyStrike;
+window.SpaceRush = SpaceRush;

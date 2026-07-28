@@ -809,7 +809,7 @@ export class GameEngine {
     this.emitExplosion(this.player.x, this.player.y, '#ff4400', 30)
 
     if (this.score > useGameStore.getState().highScore) {
-      localStorage.setItem('skystrike_highscore', this.score.toString())
+      localStorage.setItem('spacerush_highscore', this.score.toString())
     }
   }
 

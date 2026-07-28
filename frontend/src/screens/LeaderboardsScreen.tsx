@@ -17,7 +17,7 @@ export function LeaderboardsScreen() {
 
   const localLB: LeaderboardEntry[] = (() => {
     try {
-      return JSON.parse(localStorage.getItem('skystrike_leaderboard') || '[]')
+      return JSON.parse(localStorage.getItem('spacerush_leaderboard') || '[]')
     } catch { return [] }
   })()
 
