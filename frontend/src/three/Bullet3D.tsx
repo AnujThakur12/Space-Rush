@@ -3,46 +3,31 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Bullet } from '../types/game'
 import type { GameEngine } from '../engine/GameEngine'
+import { worldX, worldY } from './coords'
 
-interface Bullet3DProps {
-  bullet: Bullet
-  engine: GameEngine
-  index: number
-}
-
-export const Bullet3D = memo(function Bullet3D({ bullet, engine }: Bullet3DProps) {
+export const Bullet3D = memo(function Bullet3D({ bullet, engine }: { bullet: Bullet; engine: GameEngine; index: number }) {
   const bulletRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
-  const trailRef = useRef<THREE.Mesh>(null)
 
   useFrame(() => {
     if (!bulletRef.current || !bullet.alive) return
 
-    const scaleX = engine.canvasW / 1600
-    const scaleY = engine.canvasH / 900
-    const worldX = (bullet.x / engine.canvasW - 0.5) * 14 * scaleX
-    const worldY = -(bullet.y / engine.canvasH - 0.5) * 8 * scaleY
+    const wx = worldX(engine.canvasW, bullet.x)
+    const wy = worldY(engine.canvasH, bullet.y)
 
-    bulletRef.current.position.x = worldX
-    bulletRef.current.position.y = worldY
+    bulletRef.current.position.x = wx
+    bulletRef.current.position.y = wy
 
     if (bullet.isPlayer) {
-      const pulse = 1 + Math.sin(engine.gameTime * 25 + bullet.x) * 0.2
-      bulletRef.current.scale.y = pulse
       const angle = Math.atan2(bullet.vy, bullet.vx)
       bulletRef.current.rotation.z = angle + Math.PI / 2
     }
 
     if (glowRef.current) {
-      glowRef.current.position.x = worldX
-      glowRef.current.position.y = worldY
-      const pulse = 0.8 + Math.sin(engine.gameTime * 30 + bullet.x + bullet.y) * 0.2
+      glowRef.current.position.x = wx
+      glowRef.current.position.y = wy
+      const pulse = 0.8 + Math.sin(engine.gameTime * 30 + bullet.x) * 0.2
       glowRef.current.scale.setScalar(pulse)
-    }
-
-    if (trailRef.current) {
-      trailRef.current.position.x = worldX
-      trailRef.current.position.y = worldY
     }
   })
 
@@ -54,49 +39,26 @@ export const Bullet3D = memo(function Bullet3D({ bullet, engine }: Bullet3DProps
     <group>
       <mesh ref={bulletRef}>
         {isPlayer ? (
-          <boxGeometry args={[0.03, 0.2, 0.03]} />
+          <boxGeometry args={[0.04, 0.3, 0.04]} />
         ) : (
-          <sphereGeometry args={[0.06, 6, 6]} />
+          <sphereGeometry args={[0.07, 6, 6]} />
         )}
         <meshBasicMaterial color={color} />
       </mesh>
 
       {isPlayer && (
-        <mesh ref={trailRef}>
-          <planeGeometry args={[0.04, 0.4]} />
-          <meshBasicMaterial
-            color="#00ffff"
-            transparent
-            opacity={0.2}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
+        <mesh>
+          <planeGeometry args={[0.05, 0.5]} />
+          <meshBasicMaterial color="#00ffff" transparent opacity={0.15}
+            depthWrite={false} blending={THREE.AdditiveBlending} />
         </mesh>
       )}
 
       <mesh ref={glowRef}>
-        <planeGeometry args={[0.3, 0.3]} />
-        <meshBasicMaterial
-          color={glowColor}
-          transparent
-          opacity={0.12}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
+        <planeGeometry args={[0.25, 0.25]} />
+        <meshBasicMaterial color={glowColor} transparent opacity={0.08}
+          depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
-
-      {!isPlayer && (
-        <mesh>
-          <sphereGeometry args={[0.05, 6, 6]} />
-          <meshBasicMaterial
-            color="#ff4444"
-            transparent
-            opacity={0.3}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </mesh>
-      )}
     </group>
   )
 })

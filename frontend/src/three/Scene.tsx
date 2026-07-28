@@ -1,7 +1,7 @@
 import { Suspense, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { AdaptiveDpr, AdaptiveEvents } from '@react-three/drei'
-import { EffectComposer, Bloom, ToneMapping } from '@react-three/postprocessing'
+import { AdaptiveDpr, AdaptiveEvents, Html } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { NebulaBackground } from './NebulaBackground'
 import { PlayerShip } from './PlayerShip'
@@ -11,55 +11,35 @@ import { Bullet3D } from './Bullet3D'
 import { Effects3D } from './Effects3D'
 import type { GameEngine } from '../engine/GameEngine'
 import { useGameStore } from '../store/gameStore'
+import { WORLD_W, WORLD_H, worldX, worldY } from './coords'
 
 interface GameSceneProps {
   engine: GameEngine
 }
 
 function MenuDecoration() {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const glowRef = useRef<THREE.Mesh>(null)
+  const ref = useRef<THREE.Mesh>(null)
 
   useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x += delta * 0.15
-      meshRef.current.rotation.y += delta * 0.3
-    }
-    if (glowRef.current) {
-      const s = 1 + Math.sin(performance.now() / 1000 * 2) * 0.05
-      glowRef.current.scale.setScalar(s)
+    if (ref.current) {
+      ref.current.rotation.y += delta * 0.4
+      ref.current.rotation.x += delta * 0.15
     }
   })
 
   return (
-    <group position={[0, 0, 1]}>
-      <mesh ref={glowRef} scale={4}>
-        <sphereGeometry />
-        <meshBasicMaterial color="#4488ff" transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <mesh ref={meshRef}>
-        <icosahedronGeometry args={[1.5, 1]} />
-        <meshStandardMaterial
-          color="#4488ff"
-          metalness={0.9}
-          roughness={0.1}
-          wireframe
-          transparent
-          opacity={0.5}
-          emissive="#4488ff"
-          emissiveIntensity={0.4}
-        />
-      </mesh>
-      <mesh>
-        <icosahedronGeometry args={[1.2, 0]} />
+    <group position={[0, 0, 0]}>
+      <mesh ref={ref} scale={2.5}>
+        <icosahedronGeometry args={[1.2, 1]} />
         <meshStandardMaterial
           color="#4488ff"
           metalness={0.8}
           roughness={0.2}
+          wireframe
           transparent
-          opacity={0.15}
+          opacity={0.4}
           emissive="#4488ff"
-          emissiveIntensity={0.2}
+          emissiveIntensity={0.3}
         />
       </mesh>
     </group>
@@ -71,54 +51,44 @@ function CameraRig({ engine }: { engine: GameEngine }) {
   const screen = useGameStore((s) => s.screen)
   const isPlaying = screen === 'playing' || screen === 'paused' || screen === 'gameover'
 
-  const targetPos = useRef(new THREE.Vector3(0, 0, 10))
-  const currentPos = useRef(new THREE.Vector3(0, 0, 10))
-  const targetLook = useRef(new THREE.Vector3(0, 0, 0))
+  const basePos = useRef(new THREE.Vector3(0, 12, 2))
+  const targetOffset = useRef(new THREE.Vector3(0, 0, 0))
+  const currentOffset = useRef(new THREE.Vector3(0, 0, 0))
 
   useFrame(() => {
-    const p = engine.player
     if (!isPlaying) {
-      targetPos.current.set(0, 0, 10)
-      currentPos.current.lerp(targetPos.current, 0.05)
-      cam.position.copy(currentPos.current)
+      basePos.current.set(0, 12, 2)
+      cam.position.lerp(basePos.current, 0.05)
       cam.lookAt(0, 0, 0)
-      cam.fov += (60 - cam.fov) * 0.05
+      cam.fov += (50 - cam.fov) * 0.05
       cam.updateProjectionMatrix()
       return
     }
 
+    const p = engine.player
     if (!p.alive) return
 
-    const scaleX = engine.canvasW / 1600
-    const scaleY = engine.canvasH / 900
-    const worldX = (p.x / engine.canvasW - 0.5) * 14 * scaleX
-    const worldY = -(p.y / engine.canvasH - 0.5) * 8 * scaleY
+    const wx = worldX(engine.canvasW, p.x)
+    const wy = worldY(engine.canvasH, p.y)
 
-    const bossDist = engine.boss && engine.boss.alive ? 1 : 0
-    const zoom = bossDist > 0 ? 9 : 7.5
-    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
+    const tiltX = -clamp(p.vy / 300, -0.08, 0.08)
+    const tiltZ = clamp(p.vx / 300, -0.12, 0.12)
 
-    const tiltX = -clamp(p.vy / 300, -0.15, 0.15)
-    const tiltY = clamp(p.vx / 300, -0.2, 0.2)
+    const shakeX = engine.screenShakeIntensity > 0 ? (Math.random() - 0.5) * engine.screenShakeIntensity * 0.008 : 0
+    const shakeY = engine.screenShakeIntensity > 0 ? (Math.random() - 0.5) * engine.screenShakeIntensity * 0.008 : 0
 
-    const shakeX = engine.screenShakeIntensity > 0 ? (Math.random() - 0.5) * engine.screenShakeIntensity * 0.02 : 0
-    const shakeY = engine.screenShakeIntensity > 0 ? (Math.random() - 0.5) * engine.screenShakeIntensity * 0.02 : 0
+    targetOffset.current.set(wx * 0.2 + shakeX, wy * 0.2 + shakeY, 0)
+    currentOffset.current.lerp(targetOffset.current, 0.08)
 
-    targetPos.current.set(
-      worldX * 0.3 + tiltY * 2 + shakeX,
-      worldY * 0.3 + tiltX * 2 + shakeY,
-      zoom
-    )
+    const bossZoom = engine.boss && engine.boss.alive ? 1.2 : 0
+    const targetHeight = 12 + bossZoom * -2
 
-    targetLook.current.set(worldX * 0.1, worldY * 0.1 + tiltX, 0)
+    basePos.current.set(currentOffset.current.x, targetHeight, 2 + currentOffset.current.y * -0.1)
+    cam.position.lerp(basePos.current, 0.06)
+    cam.lookAt(currentOffset.current.x * 0.5, currentOffset.current.y * 0.5, 0)
+    cam.rotation.z += (tiltZ - cam.rotation.z) * 0.08
 
-    currentPos.current.lerp(targetPos.current, 0.08)
-    cam.position.copy(currentPos.current)
-
-    const lookTarget = new THREE.Vector3().lerp(targetLook.current, 0.1)
-    cam.lookAt(lookTarget)
-
-    const targetFov = engine.boss && engine.boss.alive ? 65 : 72
+    const targetFov = engine.boss && engine.boss.alive ? 45 : 50
     cam.fov += (targetFov - cam.fov) * 0.05
     cam.updateProjectionMatrix()
   })
@@ -134,21 +104,19 @@ function SceneContent({ engine }: GameSceneProps) {
 
   return (
     <>
-      <color attach="background" args={['#020008']} />
+      <color attach="background" args={['#010005']} />
 
       <NebulaBackground />
 
-      <ambientLight intensity={0.3} color="#2244aa" />
-      <directionalLight position={[10, 15, 8]} intensity={0.8} color="#ffeedd" />
-      <directionalLight position={[-8, -5, -10]} intensity={0.3} color="#4488ff" />
-      <directionalLight position={[0, -10, -5]} intensity={0.2} color="#ff4488" />
-
-      <pointLight position={[0, 0, 5]} intensity={0.4} color="#4488ff" distance={30} decay={2} />
+      <ambientLight intensity={0.25} color="#2233aa" />
+      <directionalLight position={[5, 15, 8]} intensity={0.6} color="#ffeedd" />
+      <directionalLight position={[-5, 10, -5]} intensity={0.2} color="#4488ff" />
+      <pointLight position={[0, 5, 0]} intensity={0.3} color="#4488ff" distance={20} decay={2} />
 
       <CameraRig engine={engine} />
 
       {isPlaying && (
-        <>
+        <group>
           <PlayerShip engine={engine} />
           {engine.enemies.map((e, i) =>
             e.alive ? <EnemyShip key={i} enemy={e} engine={engine} index={i} /> : null
@@ -158,18 +126,18 @@ function SceneContent({ engine }: GameSceneProps) {
             b.alive ? <Bullet3D key={i} bullet={b} engine={engine} index={i} /> : null
           )}
           <Effects3D engine={engine} />
-        </>
+        </group>
       )}
 
       {!isPlaying && <MenuDecoration />}
 
       {flashIntensity > 0 && (
-        <mesh scale={[100, 100, 1]}>
+        <mesh scale={[40, 40, 1]}>
           <planeGeometry />
           <meshBasicMaterial
             color={flashColor || '#ffffff'}
             transparent
-            opacity={flashIntensity * 0.4}
+            opacity={flashIntensity * 0.3}
             depthWrite={false}
           />
         </mesh>
@@ -182,16 +150,16 @@ export function GameScene({ engine }: GameSceneProps) {
   return (
     <Canvas
       camera={{
-        position: [0, 0, 10],
-        fov: 60,
+        position: [0, 12, 2],
+        fov: 50,
         near: 0.1,
-        far: 2000,
+        far: 500,
       }}
-      dpr={[1, window.innerWidth < 768 ? 1.2 : 2]}
+      dpr={[1, window.innerWidth < 768 ? 1 : 1.5]}
       gl={{
         antialias: true,
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.2,
+        toneMappingExposure: 1.0,
       }}
       style={{
         position: 'fixed',
@@ -206,17 +174,10 @@ export function GameScene({ engine }: GameSceneProps) {
         <SceneContent engine={engine} />
         <EffectComposer>
           <Bloom
-            luminanceThreshold={0.1}
-            luminanceSmoothing={0.8}
-            intensity={0.8}
+            luminanceThreshold={0.15}
+            luminanceSmoothing={0.85}
+            intensity={0.5}
             mipmapBlur
-          />
-          <ToneMapping
-            adaptive
-            resolution={256}
-            middleGrey={0.6}
-            averageLuminance={1.0}
-            maxLuminance={16.0}
           />
         </EffectComposer>
         <AdaptiveDpr pixelated />
