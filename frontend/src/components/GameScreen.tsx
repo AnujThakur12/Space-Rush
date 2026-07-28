@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { GameEngine } from '../engine/GameEngine'
-import { GameScene } from '../three/Scene'
+import { GameCanvas } from '../renderer/GameCanvas'
 import { HUD } from './HUD'
 import { Notifications } from './Notifications'
 import { GameOverOverlay } from './GameOverOverlay'
@@ -18,15 +18,13 @@ interface GameScreenProps {
 
 export function GameScreen({ engine, onRestart, onMenu, onTogglePause }: GameScreenProps) {
   const screen = useGameStore((s) => s.screen)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const touchCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    if (canvasRef.current) {
-      inputManager.init(canvasRef.current, onTogglePause)
+    if (touchCanvasRef.current) {
+      inputManager.init(touchCanvasRef.current, onTogglePause)
     }
-    return () => {
-      inputManager.dispose()
-    }
+    return () => { inputManager.dispose() }
   }, [onTogglePause])
 
   const isPlaying = screen === 'playing' || screen === 'paused'
@@ -34,13 +32,12 @@ export function GameScreen({ engine, onRestart, onMenu, onTogglePause }: GameScr
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}>
-      <GameScene engine={engine} />
+      <GameCanvas engine={engine} />
       <canvas
-        ref={canvasRef}
-        id="gameCanvas"
+        ref={touchCanvasRef}
         style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          zIndex: 2, pointerEvents: 'auto', touchAction: 'none',
+          zIndex: 3, pointerEvents: 'auto', touchAction: 'none',
         }}
       />
       <HUD />

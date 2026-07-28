@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect } from 'react'
 import { useGameStore } from './store/gameStore'
 import { GameEngine } from './engine/GameEngine'
 import { audioManager } from './engine/AudioManager'
-import { GameScene } from './three/Scene'
+import { MenuBackground } from './renderer/MenuBackground'
 import { LoadingScreen } from './components/LoadingScreen'
 import { MainMenu } from './screens/MainMenu'
 import { GameScreen } from './components/GameScreen'
@@ -13,6 +13,7 @@ import { AchievementsScreen } from './screens/AchievementsScreen'
 import { LeaderboardsScreen } from './screens/LeaderboardsScreen'
 import { AccountScreen } from './screens/AccountScreen'
 import { storageManager } from './engine/StorageManager'
+import { inputManager } from './engine/InputManager'
 
 export default function App() {
   const screen = useGameStore((s) => s.screen)
@@ -109,6 +110,8 @@ export default function App() {
   }, [stopLoop])
 
   const isGameScreen = screen === 'playing' || screen === 'paused' || screen === 'gameover'
+  const isMenu = screen === 'menu' || screen === 'settings' || screen === 'plane_select' ||
+    screen === 'upgrades' || screen === 'achievements' || screen === 'leaderboards' || screen === 'account'
 
   return (
     <>
@@ -123,7 +126,7 @@ export default function App() {
         />
       )}
 
-      {!isGameScreen && <GameScene engine={getEngine()} />}
+      {isMenu && <MenuBackground />}
 
       {screen === 'menu' && <MainMenu onStart={startGame} />}
       {screen === 'settings' && <SettingsScreen />}
