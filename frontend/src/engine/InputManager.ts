@@ -12,17 +12,20 @@ class InputManager {
     keys: new Set(),
     joystickAngle: 0,
     joystickMagnitude: 0,
+    mouseX: 0,
+    mouseY: 0,
+    mouseActive: false,
   }
 
   private canvas: HTMLCanvasElement | null = null
-  private shotDownKeys = new Set<string>()
   private touchIdentifier: number | null = null
   private joystickCenterX = 0
   private joystickCenterY = 0
   private joystickActive = false
   private onPause?: () => void
-
   private keysDown: Record<string, boolean> = {}
+  private mouseOnCanvas = false
+  private mouseInside = false
 
   init(canvas: HTMLCanvasElement, onPause?: () => void): void {
     this.canvas = canvas
@@ -30,13 +33,17 @@ class InputManager {
 
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
+
     canvas.addEventListener('touchstart', this.onTouchStart, { passive: false })
     canvas.addEventListener('touchmove', this.onTouchMove, { passive: false })
     canvas.addEventListener('touchend', this.onTouchEnd, { passive: false })
     canvas.addEventListener('touchcancel', this.onTouchEnd, { passive: false })
+
     canvas.addEventListener('mousedown', this.onMouseDown)
     canvas.addEventListener('mousemove', this.onMouseMove)
     canvas.addEventListener('mouseup', this.onMouseUp)
+    canvas.addEventListener('mouseenter', () => { this.mouseInside = true })
+    canvas.addEventListener('mouseleave', () => { this.mouseInside = false })
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -44,6 +51,7 @@ class InputManager {
         this.state.firing = false
         this.state.touchActive = false
         this.joystickActive = false
+        this.mouseOnCanvas = false
       }
     })
   }
@@ -66,7 +74,7 @@ class InputManager {
 
   private onKeyUp = (e: KeyboardEvent): void => {
     if (e.key === ' ' || e.key === 'z' || e.key === 'Z') {
-      this.state.firing = false
+      if (!this.mouseOnCanvas) this.state.firing = false
     }
     if (e.key === 'x' || e.key === 'X') {
       // handled on read
@@ -145,30 +153,30 @@ class InputManager {
     this.state.firing = !settings.autoFire && false
   }
 
-  private mouseDown = false
-
   private onMouseDown = (e: MouseEvent): void => {
-    if (!this.canvas) return
-    const rect = this.canvas.getBoundingClientRect()
-    this.state.touchX = ((e.clientX - rect.left) / rect.width) * 2 - 1
-    this.state.touchY = -((e.clientY - rect.top) / rect.height) * 2 + 1
-    this.state.touchActive = true
-    this.mouseDown = true
+    e.preventDefault()
+    this.mouseOnCanvas = true
     this.state.firing = true
+    this.state.mouseActive = true
+    this.updateMousePos(e)
   }
 
   private onMouseMove = (e: MouseEvent): void => {
-    if (!this.mouseDown || !this.canvas) return
-    const rect = this.canvas.getBoundingClientRect()
-    this.state.touchX = ((e.clientX - rect.left) / rect.width) * 2 - 1
-    this.state.touchY = -((e.clientY - rect.top) / rect.height) * 2 + 1
+    this.state.mouseActive = true
+    this.updateMousePos(e)
   }
 
   private onMouseUp = (): void => {
-    this.mouseDown = false
-    this.state.touchActive = false
-    const settings = useGameStore.getState().settings
-    this.state.firing = !settings.autoFire && false
+    this.mouseOnCanvas = false
+    this.state.firing = false
+    this.state.mouseActive = false
+  }
+
+  private updateMousePos(e: MouseEvent): void {
+    if (!this.canvas) return
+    const rect = this.canvas.getBoundingClientRect()
+    this.state.mouseX = e.clientX - rect.left
+    this.state.mouseY = e.clientY - rect.top
   }
 
   readBomb(): boolean {

@@ -60,6 +60,9 @@ export class GameEngine {
   flashTimer = 0
   flashColor = ''
   flashIntensity = 0
+  muzzleFlashTimer = 0
+  muzzleX = 0
+  muzzleY = 0
 
   private lastTime = 0
   private enemyTimer = 0
@@ -128,6 +131,7 @@ export class GameEngine {
     this.enemyTimer = 0
     this.difficulty = 1
     this.bossWarningShown = false
+    this.muzzleFlashTimer = 0
 
     this.createPlayer()
     this.enemies = []
@@ -190,6 +194,7 @@ export class GameEngine {
 
     this.updateScreenShake(dt)
     this.updateFlash(dt)
+    if (this.muzzleFlashTimer > 0) this.muzzleFlashTimer -= dt
     this.updateStore()
   }
 
@@ -221,22 +226,34 @@ export class GameEngine {
 
     let moveX = 0
     let moveY = 0
+    const kLeft = input.keys.has('ArrowLeft') || input.keys.has('a') || input.keys.has('A')
+    const kRight = input.keys.has('ArrowRight') || input.keys.has('d') || input.keys.has('D')
+    const kUp = input.keys.has('ArrowUp') || input.keys.has('w') || input.keys.has('W')
+    const kDown = input.keys.has('ArrowDown') || input.keys.has('s') || input.keys.has('S')
+    const usingKeyboard = kLeft || kRight || kUp || kDown
 
-    if (input.touchActive) {
-      moveX = input.touchX
-      moveY = input.touchY
+    if (usingKeyboard) {
+      if (kLeft) moveX = -1
+      if (kRight) moveX = 1
+      if (kUp) moveY = -1
+      if (kDown) moveY = 1
+      p.targetVx = moveX * p.speed
+      p.targetVy = moveY * p.speed
+    } else if (input.mouseActive) {
+      const dx = input.mouseX - p.x
+      const dy = input.mouseY - p.y
+      const followStrength = 8
+      p.targetVx = dx * followStrength
+      p.targetVy = dy * followStrength
+    } else if (input.touchActive) {
+      p.targetVx = input.touchX * p.speed
+      p.targetVy = input.touchY * p.speed
     } else {
-      if (input.keys.has('ArrowLeft') || input.keys.has('a') || input.keys.has('A')) moveX = -1
-      if (input.keys.has('ArrowRight') || input.keys.has('d') || input.keys.has('D')) moveX = 1
-      if (input.keys.has('ArrowUp') || input.keys.has('w') || input.keys.has('W')) moveY = -1
-      if (input.keys.has('ArrowDown') || input.keys.has('s') || input.keys.has('S')) moveY = 1
+      p.targetVx = 0
+      p.targetVy = 0
     }
 
-    p.targetVx = moveX * p.speed
-    p.targetVy = moveY * p.speed
-
-    const accel = 800
-    const friction = 6
+    const friction = 8
     p.vx += (p.targetVx - p.vx) * friction * dt
     p.vy += (p.targetVy - p.vy) * friction * dt
 
@@ -296,6 +313,9 @@ export class GameEngine {
       this.bullets.push(b)
     }
 
+    this.muzzleFlashTimer = 0.08
+    this.muzzleX = bx
+    this.muzzleY = by
     audioManager.playSfxSynth('shoot')
   }
 

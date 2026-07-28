@@ -212,6 +212,9 @@ export interface InputState {
   keys: Set<string>
   joystickAngle: number
   joystickMagnitude: number
+  mouseX: number
+  mouseY: number
+  mouseActive: boolean
 }
 
 export interface LeaderboardEntry {
