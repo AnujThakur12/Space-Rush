@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { GameEngine } from '../engine/GameEngine'
 
-const MAX_PARTICLES = 300
+const MAX_PARTICLES = 400
 
 export function Effects3D({ engine }: { engine: GameEngine }) {
   const pointsRef = useRef<THREE.Points>(null)
@@ -36,7 +36,7 @@ export function Effects3D({ engine }: { engine: GameEngine }) {
         const scaleY = engine.canvasH / 900
         pos[i3] = (p.x / engine.canvasW - 0.5) * 14 * scaleX
         pos[i3 + 1] = -(p.y / engine.canvasH - 0.5) * 8 * scaleY
-        pos[i3 + 2] = (Math.random() - 0.5) * 0.5
+        pos[i3 + 2] = (Math.random() - 0.5) * 0.3
 
         const c = new THREE.Color(p.color || '#ffffff')
         col[i3] = c.r * p.alpha
