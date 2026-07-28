@@ -37,8 +37,8 @@ export function Effects3D({ engine }: Effects3DProps) {
         const p = alive[i]
         const scaleX = engine.canvasW / 1600
         const scaleY = engine.canvasH / 900
-        pos[i3] = (p.x / engine.canvasW - 0.5) * 30 * scaleX
-        pos[i3 + 1] = -(p.y / engine.canvasH - 0.5) * 20 * scaleY
+        pos[i3] = (p.x / engine.canvasW - 0.5) * 14 * scaleX
+        pos[i3 + 1] = -(p.y / engine.canvasH - 0.5) * 8 * scaleY
         pos[i3 + 2] = 0
 
         const c = new THREE.Color(p.color)

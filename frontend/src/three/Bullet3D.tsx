@@ -18,8 +18,8 @@ export const Bullet3D = memo(function Bullet3D({ bullet, engine, index }: Bullet
 
     const scaleX = engine.canvasW / 1600
     const scaleY = engine.canvasH / 900
-    const worldX = (bullet.x / engine.canvasW - 0.5) * 30 * scaleX
-    const worldY = -(bullet.y / engine.canvasH - 0.5) * 20 * scaleY
+    const worldX = (bullet.x / engine.canvasW - 0.5) * 14 * scaleX
+    const worldY = -(bullet.y / engine.canvasH - 0.5) * 8 * scaleY
 
     meshRef.current.position.x = worldX
     meshRef.current.position.y = worldY

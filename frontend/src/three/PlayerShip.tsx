@@ -17,8 +17,8 @@ export function PlayerShip({ engine }: PlayerShipProps) {
 
     const scaleX = engine.canvasW / 1600
     const scaleY = engine.canvasH / 900
-    const worldX = (p.x / engine.canvasW - 0.5) * 30 * scaleX
-    const worldY = -(p.y / engine.canvasH - 0.5) * 20 * scaleY
+    const worldX = (p.x / engine.canvasW - 0.5) * 14 * scaleX
+    const worldY = -(p.y / engine.canvasH - 0.5) * 8 * scaleY
 
     groupRef.current.position.x += (worldX - groupRef.current.position.x) * 0.15
     groupRef.current.position.y += (worldY - groupRef.current.position.y) * 0.15

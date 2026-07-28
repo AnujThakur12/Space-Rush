@@ -18,8 +18,8 @@ export const EnemyShip = memo(function EnemyShip({ enemy, engine, index }: Enemy
 
     const scaleX = engine.canvasW / 1600
     const scaleY = engine.canvasH / 900
-    const worldX = (enemy.x / engine.canvasW - 0.5) * 30 * scaleX
-    const worldY = -(enemy.y / engine.canvasH - 0.5) * 20 * scaleY
+    const worldX = (enemy.x / engine.canvasW - 0.5) * 14 * scaleX
+    const worldY = -(enemy.y / engine.canvasH - 0.5) * 8 * scaleY
 
     groupRef.current.position.x = worldX
     groupRef.current.position.y = worldY
