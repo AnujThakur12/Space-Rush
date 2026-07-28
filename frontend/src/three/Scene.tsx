@@ -1,8 +1,9 @@
-import { Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { Sky, Environment, AdaptiveDpr, AdaptiveEvents } from '@react-three/drei'
+import { Suspense, useRef } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { AdaptiveDpr, AdaptiveEvents } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
-import { Starfield } from './Starfield'
+import { NebulaBackground } from './NebulaBackground'
 import { PlayerShip } from './PlayerShip'
 import { EnemyShip } from './EnemyShip'
 import { BossShip } from './BossShip'
@@ -15,18 +16,61 @@ interface GameSceneProps {
   engine: GameEngine
 }
 
+function MenuDecoration() {
+  const meshRef = useRef<THREE.Mesh>(null)
+
+  useFrame((_, delta) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.x += delta * 0.3
+      meshRef.current.rotation.y += delta * 0.5
+    }
+  })
+
+  return (
+    <group position={[0, 0, 2]}>
+      <mesh ref={meshRef}>
+        <icosahedronGeometry args={[1.8, 0]} />
+        <meshStandardMaterial
+          color="#4488ff"
+          metalness={0.8}
+          roughness={0.2}
+          wireframe
+          transparent
+          opacity={0.4}
+          emissive="#4488ff"
+          emissiveIntensity={0.2}
+        />
+      </mesh>
+      <mesh>
+        <icosahedronGeometry args={[1.4, 0]} />
+        <meshStandardMaterial
+          color="#4488ff"
+          metalness={0.9}
+          roughness={0.1}
+          transparent
+          opacity={0.1}
+        />
+      </mesh>
+    </group>
+  )
+}
+
 function SceneContent({ engine }: GameSceneProps) {
   const screen = useGameStore((s) => s.screen)
   const isPlaying = screen === 'playing' || screen === 'paused' || screen === 'gameover'
+  const flashIntensity = useGameStore((s) => s.flashIntensity)
+  const flashColor = useGameStore((s) => s.flashColor)
 
   return (
     <>
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 10, 5]} intensity={1} />
-      <directionalLight position={[-5, -5, -5]} intensity={0.3} />
-      <pointLight position={[0, 0, 10]} intensity={0.5} color="#4488ff" />
+      <color attach="background" args={['#050510']} />
 
-      <Starfield count={window.innerWidth < 768 ? 500 : 2000} />
+      <ambientLight intensity={0.2} />
+      <directionalLight position={[5, 10, 5]} intensity={0.8} />
+      <directionalLight position={[-5, -5, -5]} intensity={0.2} />
+      <pointLight position={[0, 0, 10]} intensity={0.3} color="#4488ff" />
+
+      <NebulaBackground />
 
       {isPlaying && (
         <>
@@ -42,17 +86,18 @@ function SceneContent({ engine }: GameSceneProps) {
         </>
       )}
 
-      {!isPlaying && (
-        <group>
-          <mesh rotation={[0.5, 0.8, 0]} position={[0, 0, 0]}>
-            <icosahedronGeometry args={[2, 0]} />
-            <meshStandardMaterial color="#4488ff" metalness={0.6} roughness={0.3} wireframe />
-          </mesh>
-          <mesh position={[0, 0, 0]}>
-            <icosahedronGeometry args={[1.6, 0]} />
-            <meshStandardMaterial color="#4488ff" metalness={0.8} roughness={0.2} transparent opacity={0.15} />
-          </mesh>
-        </group>
+      {!isPlaying && <MenuDecoration />}
+
+      {flashIntensity > 0 && (
+        <mesh scale={[100, 100, 1]}>
+          <planeGeometry />
+          <meshBasicMaterial
+            color={flashColor || '#ffffff'}
+            transparent
+            opacity={flashIntensity * 0.3}
+            depthWrite={false}
+          />
+        </mesh>
       )}
     </>
   )
@@ -68,7 +113,7 @@ export function GameScene({ engine }: GameSceneProps) {
         position: [0, 0, isPlaying ? 12 : 10],
         fov: isPlaying ? 70 : 60,
         near: 0.1,
-        far: 1000,
+        far: 2000,
       }}
       dpr={[1, window.innerWidth < 768 ? 1.2 : 2]}
       gl={{
@@ -87,6 +132,14 @@ export function GameScene({ engine }: GameSceneProps) {
     >
       <Suspense fallback={null}>
         <SceneContent engine={engine} />
+        <EffectComposer>
+          <Bloom
+            luminanceThreshold={0.3}
+            luminanceSmoothing={0.9}
+            intensity={0.6}
+            mipmapBlur
+          />
+        </EffectComposer>
         <AdaptiveDpr pixelated />
         <AdaptiveEvents />
       </Suspense>

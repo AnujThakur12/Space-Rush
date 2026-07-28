@@ -598,6 +598,7 @@ export class GameEngine {
     store.updateBossHUD(this.boss)
     store.updateScore(this.score, this.currentLevel)
     store.updateCombo(this.player.combo, this.player.comboMultiplier)
+    store.setFlash(this.flashIntensity, this.flashColor)
   }
 
   // Collision detection

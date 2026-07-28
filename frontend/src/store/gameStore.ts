@@ -69,6 +69,8 @@ export interface GameStore {
   fadeTransition: boolean
   unlockedPlanes: PlaneType[]
   isLoading: boolean
+  flashIntensity: number
+  flashColor: string
 
   setScreen: (screen: GameState) => void
   updatePlayerHUD: (p: Player) => void
@@ -83,6 +85,7 @@ export interface GameStore {
   setFadeTransition: (v: boolean) => void
   setUnlockedPlanes: (p: PlaneType[]) => void
   setLoading: (v: boolean) => void
+  setFlash: (intensity: number, color: string) => void
   reset: () => void
 }
 
@@ -109,6 +112,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   fadeTransition: false,
   unlockedPlanes: ['default'],
   isLoading: true,
+  flashIntensity: 0,
+  flashColor: '#ffffff',
 
   setScreen: (screen) => set({ screen }),
 
@@ -164,6 +169,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setUnlockedPlanes: (p) => set({ unlockedPlanes: p }),
 
   setLoading: (v) => set({ isLoading: v }),
+  setFlash: (intensity, color) => set({ flashIntensity: intensity, flashColor: color }),
 
   reset: () =>
     set({
