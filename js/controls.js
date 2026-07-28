@@ -3,25 +3,50 @@ class SkyControls {
         this.canvas = canvas;
         this.keys = {};
         this.touches = {};
-        this.joystick = { active: false, x: 0, y: 0, dx: 0, dy: 0 };
+        this.joystick = { active: false, x: 0, y: 0, dx: 0, dy: 0, targetDx: 0, targetDy: 0 };
         this.firePressed = false;
+        this.fireTouchId = null;
         this.pausePressed = false;
         this.joystickTouchId = null;
         this.joystickCenter = { x: 0, y: 0 };
-        this.joystickRadius = 65;
-        this.joystickBaseRadius = 65;
-        this.joystickBaseRadiusRef = 65;
+        this.joystickRadius = 75;
+        this.joystickBaseRadius = 75;
         this.mobile = false;
-        this.autoFire = false;
+        this.autoFire = true;
+        this.joystickMode = 'dynamic';
+        this.joystickOpacity = 0.4;
+        this.joystickSensitivity = 1;
+        this.touchSmoothX = 0;
+        this.touchSmoothY = 0;
+        this.aimAssistStrength = 0.3;
+        this.smoothFactor = 0;
+        this._prevTime = 0;
 
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
         this._onTouchStart = this._onTouchStart.bind(this);
         this._onTouchMove = this._onTouchMove.bind(this);
         this._onTouchEnd = this._onTouchEnd.bind(this);
+        this._onMouseDown = this._onMouseDown.bind(this);
+        this._onMouseUp = this._onMouseUp.bind(this);
 
         this._addListeners();
         this._detectMobile();
+        this._loadSettings();
+    }
+
+    _loadSettings() {
+        try {
+            const storage = window.SkyStorage ? new window.SkyStorage() : null;
+            if (storage) {
+                const s = storage.getSettings();
+                this.joystickMode = s.joystickMode || 'dynamic';
+                this.joystickOpacity = s.joystickOpacity || 0.4;
+                this.joystickSensitivity = s.joystickSensitivity || 1;
+                this.autoFire = s.autoFire !== undefined ? s.autoFire : true;
+                this.aimAssistStrength = s.aimAssist || 0.3;
+            }
+        } catch (e) {}
     }
 
     _detectMobile() {
@@ -36,10 +61,9 @@ class SkyControls {
         this.canvas.addEventListener('touchmove', this._onTouchMove, { passive: false });
         this.canvas.addEventListener('touchend', this._onTouchEnd, { passive: false });
         this.canvas.addEventListener('touchcancel', this._onTouchEnd, { passive: false });
-        this.canvas.addEventListener('mousedown', (e) => { if (e.button === 0) this.firePressed = true; });
-        this.canvas.addEventListener('mouseup', (e) => { if (e.button === 0) this.firePressed = false; });
-        this.canvas.addEventListener('mouseleave', (e) => { this.firePressed = false; });
-        this._mouseFireGuard = false;
+        this.canvas.addEventListener('mousedown', this._onMouseDown);
+        document.addEventListener('mouseup', this._onMouseUp);
+        document.addEventListener('mouseleave', this._onMouseUp);
     }
 
     removeListeners() {
@@ -49,6 +73,9 @@ class SkyControls {
         this.canvas.removeEventListener('touchmove', this._onTouchMove);
         this.canvas.removeEventListener('touchend', this._onTouchEnd);
         this.canvas.removeEventListener('touchcancel', this._onTouchEnd);
+        this.canvas.removeEventListener('mousedown', this._onMouseDown);
+        document.removeEventListener('mouseup', this._onMouseUp);
+        document.removeEventListener('mouseleave', this._onMouseUp);
     }
 
     _onKeyDown(e) {
@@ -65,57 +92,104 @@ class SkyControls {
         this.keys[e.key] = false;
     }
 
-    _onTouchStart(e) {
+    _onMouseDown(e) {
+        if (e.button === 0) this.firePressed = true;
+    }
+
+    _onMouseUp(e) {
+        if (e.button === 0) this.firePressed = false;
+    }
+
+    _toCanvasCoords(clientX, clientY) {
         const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
+        return {
+            x: (clientX - rect.left) * (this.canvas.width / rect.width),
+            y: (clientY - rect.top) * (this.canvas.height / rect.height)
+        };
+    }
 
+    _onTouchStart(e) {
         for (const touch of e.changedTouches) {
-            const x = (touch.clientX - rect.left) * scaleX;
-            const y = (touch.clientY - rect.top) * scaleY;
+            const { x, y } = this._toCanvasCoords(touch.clientX, touch.clientY);
+            const w = this.canvas.width;
+            const h = this.canvas.height;
 
-            this.joystickCenter.x = 0.075 * this.canvas.width;
-            this.joystickCenter.y = this.canvas.height - this.canvas.height * 0.145;
-            this.joystickRadius = this.joystickBaseRadiusRef * (this.canvas.width / 1600);
-            this.joystickBaseRadius = this.joystickRadius;
-
-            if (x < this.canvas.width * 0.4) {
+            if (this.joystickMode === 'dynamic' && x < w * 0.5 && !this.joystick.active) {
+                const baseR = this.joystickRadius * (w / 1600);
+                this.joystickCenter.x = Math.min(x, w * 0.42);
+                this.joystickCenter.y = Math.min(y, h - baseR - 20);
+                this.joystickRadius = baseR;
                 this.joystickTouchId = touch.identifier;
                 this.joystick.active = true;
                 this.joystick.x = this.joystickCenter.x;
                 this.joystick.y = this.joystickCenter.y;
                 this.joystick.dx = 0;
                 this.joystick.dy = 0;
+                this.joystick.targetDx = 0;
+                this.joystick.targetDy = 0;
+                this.touchSmoothX = 0;
+                this.touchSmoothY = 0;
+                this.smoothFactor = 0;
+                continue;
             }
 
-            if (x < this.canvas.width * 0.04 && y < this.canvas.height * 0.07) {
+            if (this.joystickMode === 'fixed' && x < w * 0.4) {
+                const baseR = this.joystickRadius * (w / 1600);
+                this.joystickCenter.x = w * 0.12;
+                this.joystickCenter.y = h * 0.82;
+                this.joystickRadius = baseR;
+                this.joystickTouchId = touch.identifier;
+                this.joystick.active = true;
+                this.joystick.x = this.joystickCenter.x;
+                this.joystick.y = this.joystickCenter.y;
+                this.joystick.dx = 0;
+                this.joystick.dy = 0;
+                this.joystick.targetDx = 0;
+                this.joystick.targetDy = 0;
+                this.touchSmoothX = 0;
+                this.touchSmoothY = 0;
+                this.smoothFactor = 0;
+                continue;
+            }
+
+            if (x > w * 0.6 && y > h * 0.65) {
+                this.firePressed = true;
+                this.fireTouchId = touch.identifier;
+            }
+
+            if (x < w * 0.06 && y < h * 0.07) {
                 this.pausePressed = true;
             }
         }
     }
 
     _onTouchMove(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
-
         for (const touch of e.changedTouches) {
-            const x = (touch.clientX - rect.left) * scaleX;
-            const y = (touch.clientY - rect.top) * scaleY;
+            const { x, y } = this._toCanvasCoords(touch.clientX, touch.clientY);
 
-            if (touch.identifier === this.joystickTouchId) {
-                this.joystick.x = x;
-                this.joystick.y = y;
+            if (touch.identifier === this.joystickTouchId && this.joystick.active) {
                 const dx = x - this.joystickCenter.x;
                 const dy = y - this.joystickCenter.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const maxDist = this.joystickRadius;
+                let clampedX = x;
+                let clampedY = y;
                 if (dist > maxDist) {
-                    this.joystick.x = this.joystickCenter.x + (dx / dist) * maxDist;
-                    this.joystick.y = this.joystickCenter.y + (dy / dist) * maxDist;
+                    clampedX = this.joystickCenter.x + (dx / dist) * maxDist;
+                    clampedY = this.joystickCenter.y + (dy / dist) * maxDist;
                 }
-                this.joystick.dx = (this.joystick.x - this.joystickCenter.x) / maxDist;
-                this.joystick.dy = (this.joystick.y - this.joystickCenter.y) / maxDist;
+                this.joystick.x = clampedX;
+                this.joystick.y = clampedY;
+                this.joystick.targetDx = (clampedX - this.joystickCenter.x) / maxDist;
+                this.joystick.targetDy = (clampedY - this.joystickCenter.y) / maxDist;
+            }
+
+            if (touch.identifier === this.fireTouchId) {
+                const w = this.canvas.width;
+                if (x < w * 0.5) {
+                    this.firePressed = false;
+                    this.fireTouchId = null;
+                }
             }
         }
     }
@@ -127,6 +201,14 @@ class SkyControls {
                 this.joystick.active = false;
                 this.joystick.dx = 0;
                 this.joystick.dy = 0;
+                this.joystick.targetDx = 0;
+                this.joystick.targetDy = 0;
+                this.touchSmoothX = 0;
+                this.touchSmoothY = 0;
+            }
+            if (touch.identifier === this.fireTouchId) {
+                this.fireTouchId = null;
+                this.firePressed = false;
             }
         }
     }
@@ -137,12 +219,18 @@ class SkyControls {
 
     getMovement() {
         if (this.joystick.active) {
-            const deadzone = 0.15;
-            let dx = Math.abs(this.joystick.dx) > deadzone ? this.joystick.dx : 0;
-            let dy = Math.abs(this.joystick.dy) > deadzone ? this.joystick.dy : 0;
+            this.joystick.dx += (this.joystick.targetDx - this.joystick.dx) * Math.min(1, 0.25 + this.smoothFactor * 2);
+            this.joystick.dy += (this.joystick.targetDy - this.joystick.dy) * Math.min(1, 0.25 + this.smoothFactor * 2);
+            this.smoothFactor = Math.min(1, this.smoothFactor + 0.05);
+            const deadzone = 0.12;
+            const sens = this.joystickSensitivity;
+            let dx = Math.abs(this.joystick.dx) > deadzone ? this.joystick.dx * sens : 0;
+            let dy = Math.abs(this.joystick.dy) > deadzone ? this.joystick.dy * sens : 0;
+            if (Math.abs(dx) > 1) dx = Math.sign(dx);
+            if (Math.abs(dy) > 1) dy = Math.sign(dy);
             return { dx, dy };
         }
-
+        this.smoothFactor = 0;
         let dx = 0, dy = 0;
         if (this.isDown('ArrowLeft') || this.isDown('a') || this.isDown('A')) dx = -1;
         if (this.isDown('ArrowRight') || this.isDown('d') || this.isDown('D')) dx = 1;
@@ -151,8 +239,32 @@ class SkyControls {
         return { dx, dy };
     }
 
+    getAimAssist(targets, playerX, playerY) {
+        if (!this.mobile || this.aimAssistStrength <= 0 || !targets || targets.length === 0) return 0;
+        let closest = null;
+        let closestDist = Infinity;
+        for (const t of targets) {
+            if (!t.active) continue;
+            const dx = t.x - playerX;
+            const dy = t.y - playerY;
+            if (dy >= 0) continue;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < closestDist && dist < 500) {
+                closestDist = dist;
+                closest = t;
+            }
+        }
+        if (!closest) return 0;
+        const aimAngle = Math.atan2(closest.y - playerY, closest.x - playerX);
+        return aimAngle * this.aimAssistStrength;
+    }
+
     isFiring() {
-        return this.isDown(' ') || this.firePressed || this.autoFire;
+        return this.isDown(' ') || this.firePressed || (this.autoFire && !this.mobile) || (this.autoFire && !this.firePressed);
+    }
+
+    isMobileFiring() {
+        return this.firePressed;
     }
 
     resetFire() { this.firePressed = false; }
@@ -173,7 +285,8 @@ class SkyControls {
             knobX: this.joystick.x,
             knobY: this.joystick.y,
             radius: this.joystickRadius,
-            baseRadius: this.joystickBaseRadius
+            baseRadius: this.joystickRadius,
+            opacity: this.joystickOpacity
         };
     }
 

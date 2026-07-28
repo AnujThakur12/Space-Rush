@@ -22,7 +22,7 @@ class SkyUI {
         this.transitionCallback = null;
         this.notifications = [];
         this.menuItems = ['Start Game', 'Planes', 'Upgrades', 'High Scores', 'Settings', 'Account', 'About'];
-        this.settingsItems = ['Music Volume', 'SFX Volume', 'Graphics', 'Fullscreen', 'Vibration', 'Reset Progress', 'Back'];
+        this.settingsItems = ['Music Volume', 'SFX Volume', 'Graphics', 'Fullscreen', 'Vibration', 'Joystick', 'Reset Progress', 'Back'];
         this.accountState = 'profile';
         this.accountMenuSelected = 0;
         this.loginInput = '';
@@ -256,8 +256,9 @@ class SkyUI {
                 case 2: ctx.textAlign = 'left'; ctx.fillText('Graphics: ' + settings.graphicsQuality.toUpperCase(), this.sx(50), y); break;
                 case 3: ctx.textAlign = 'left'; ctx.fillText('Fullscreen: ' + (settings.fullscreen ? 'ON' : 'OFF'), this.sx(50), y); break;
                 case 4: ctx.textAlign = 'left'; ctx.fillText('Mobile Vibration: ' + (settings.mobileVibration ? 'ON' : 'OFF'), this.sx(50), y); break;
-                case 5: ctx.textAlign = 'center'; ctx.fillStyle = selected ? '#ff4444' : 'rgba(255,68,68,0.6)'; ctx.fillText('RESET PROGRESS', w / 2, y); break;
-                case 6: ctx.textAlign = 'center'; ctx.fillStyle = selected ? '#4488ff' : 'rgba(255,255,255,0.7)'; ctx.fillText('Back', w / 2, y); break;
+                case 5: ctx.textAlign = 'left'; ctx.fillText('Joystick: ' + (settings.joystickMode || 'dynamic').toUpperCase(), this.sx(50), y); break;
+                case 6: ctx.textAlign = 'center'; ctx.fillStyle = selected ? '#ff4444' : 'rgba(255,68,68,0.6)'; ctx.fillText('RESET PROGRESS', w / 2, y); break;
+                case 7: ctx.textAlign = 'center'; ctx.fillStyle = selected ? '#4488ff' : 'rgba(255,255,255,0.7)'; ctx.fillText('Back', w / 2, y); break;
             }
         }
         ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '12px monospace'; ctx.textAlign = 'center';
@@ -558,6 +559,34 @@ class SkyUI {
             ctx.fillStyle = '#ffff00'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
             ctx.fillText(`RAPID ${Math.ceil(p.rapidFireTimer)}s`, w / 2, this.sy(75));
         }
+
+        if (p.combo >= 3) {
+            const comboAlpha = Math.min(1, p.comboTimer / 1.5);
+            ctx.save();
+            ctx.globalAlpha = comboAlpha;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ffd700';
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 18px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${p.combo}x COMBO`, w / 2, this.sy(108));
+            ctx.restore();
+        }
+
+        if (this.game.slowMotionTimer > 0) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(w / 2 - this.sw(80), this.sy(90), this.sw(160), this.sh(20));
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#88ffff';
+            ctx.fillStyle = '#88ffff';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`SLOW MO ${Math.ceil(this.game.slowMotionTimer)}s`, w / 2, this.sy(92));
+            ctx.restore();
+        }
+
         ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '11px monospace';
         ctx.fillText(`ENEMIES: ${this.game.enemyManager.getCount()}`, this.sx(10), h - this.sy(24));
         ctx.restore();
@@ -653,31 +682,87 @@ class SkyUI {
         if (!this.game.controls.isMobile()) return;
         const ctx = this.ctx; const ctrl = this.game.controls; const jd = ctrl.getJoystickData();
         const w = this.canvas.width; const h = this.canvas.height;
+        const op = jd.opacity || 0.4;
         ctx.save();
-        const jr = this.sw(65);
-        const jx = this.sx(120); const jy = h - this.sy(130);
+
         if (jd.active) {
-            ctx.globalAlpha = 0.4; ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(jd.centerX, jd.centerY, jd.baseRadius, 0, Math.PI * 2); ctx.stroke();
-            ctx.globalAlpha = 0.4; ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            ctx.beginPath(); ctx.arc(jd.centerX, jd.centerY, jd.baseRadius, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 0.6; ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.beginPath(); ctx.arc(jd.knobX, jd.knobY, this.sw(22), 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(jd.knobX, jd.knobY, this.sw(22), 0, Math.PI * 2); ctx.stroke();
+            const baseR = jd.radius || this.sw(65);
+            ctx.globalAlpha = op;
+            ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(jd.centerX, jd.centerY, baseR, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath();
+            ctx.arc(jd.centerX, jd.centerY, baseR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = Math.min(1, op + 0.2);
+            const knobR = this.sw(20);
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.beginPath();
+            ctx.arc(jd.knobX, jd.knobY, knobR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(jd.knobX, jd.knobY, knobR, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = Math.min(1, op + 0.3);
+            ctx.fillStyle = 'rgba(68,136,255,0.6)';
+            ctx.beginPath();
+            ctx.arc(jd.knobX, jd.knobY, this.sw(8), 0, Math.PI * 2);
+            ctx.fill();
         } else {
-            ctx.globalAlpha = 0.25; ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.stroke();
-            ctx.globalAlpha = 0.15; ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 0.15; ctx.fillStyle = 'rgba(255,255,255,0.15)';
-            ctx.beginPath(); ctx.arc(jx, jy, this.sw(15), 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 0.15; ctx.font = '18px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#ffffff'; ctx.fillText('+', jx, jy);
+            const jx = this.sx(120);
+            const jy = h - this.sy(130);
+            const jr = this.sw(65);
+            ctx.globalAlpha = op * 0.6;
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(jx, jy, jr, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath();
+            ctx.arc(jx, jy, jr, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = op * 0.5;
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.arc(jx, jy, this.sw(15), 0, Math.PI * 2);
+            ctx.fill();
         }
-        ctx.globalAlpha = 0.4; ctx.fillStyle = '#ffffff'; ctx.font = '24px monospace'; ctx.textBaseline = 'middle';
+
+        const fireR = this.sw(35);
+        const fireX = w - this.sw(60);
+        const fireY = h - this.sy(90);
+        const firePressed = ctrl.firePressed || ctrl.autoFire;
+        ctx.globalAlpha = firePressed ? op + 0.3 : op;
+        ctx.fillStyle = firePressed ? 'rgba(255,68,68,0.5)' : 'rgba(255,255,255,0.15)';
+        ctx.beginPath();
+        ctx.arc(fireX, fireY, fireR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = firePressed ? 'rgba(255,68,68,0.7)' : 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(fireX, fireY, fireR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = Math.min(1, op + 0.3);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(this.sw(18))}px monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText('∥', w - this.sw(28), this.sy(28));
+        ctx.textBaseline = 'middle';
+        ctx.fillText('FIRE', fireX, fireY);
+
+        ctx.globalAlpha = op;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${Math.round(this.sw(20))}px monospace`;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText('∥', w - this.sw(28), this.sy(24));
+
+        ctx.globalAlpha = 1;
         ctx.restore();
     }
 

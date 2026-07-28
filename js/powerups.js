@@ -19,7 +19,10 @@ class SkyPowerUp {
             weaponRocket: 'powerup_weapon_rocket',
             weaponPlasma: 'powerup_weapon_plasma',
             weaponTriple: 'powerup_weapon_triple',
-            coins: 'powerup_coins'
+            coins: 'powerup_coins',
+            bomb: 'powerup_bomb',
+            homing: 'powerup_homing',
+            slowMotion: 'powerup_slow'
         };
         this.spriteName = spriteMap[type] || `powerup_${type}`;
 
@@ -34,7 +37,10 @@ class SkyPowerUp {
             weaponRocket: { color: '#ff4400', icon: 'R', label: 'Rockets' },
             weaponPlasma: { color: '#aa00ff', icon: 'P', label: 'Plasma' },
             weaponTriple: { color: '#ffaa00', icon: 'T', label: 'Triple Shot' },
-            coins: { color: '#ffd700', icon: '$', label: 'Coins' }
+            coins: { color: '#ffd700', icon: '$', label: 'Coins' },
+            bomb: { color: '#ff0000', icon: 'B', label: 'Bomb' },
+            homing: { color: '#ff88ff', icon: 'H', label: 'Homing Missiles' },
+            slowMotion: { color: '#88ffff', icon: 'S', label: 'Slow Motion' }
         };
 
         const cfg = configs[type] || configs.health;
@@ -90,19 +96,36 @@ class SkyPowerUp {
         ctx.restore();
     }
 
-    apply(player) {
+    apply(player, game) {
         switch (this.type) {
             case 'health': player.heal(40); break;
             case 'shield': player.addShield(30); break;
             case 'doubleDamage': player.doubleDamageTimer = 8; break;
             case 'rapidFire': player.rapidFireTimer = 6; break;
             case 'coinMagnet': player.coinMagnetTimer = 10; break;
-            case 'extraLife': player.health = player.maxHealth; break;
+            case 'extraLife': player.health = player.maxHealth; player.addShield(50); break;
             case 'weaponLaser': player.switchWeapon('laser'); break;
             case 'weaponRocket': player.switchWeapon('rocket'); break;
             case 'weaponPlasma': player.switchWeapon('plasma'); break;
             case 'weaponTriple': player.switchWeapon('tripleshot'); break;
             case 'coins': player.addCoins(25); break;
+            case 'bomb':
+                if (game) {
+                    game.enemyManager.enemies.forEach(e => { e.health = 0; e.active = false; });
+                    game.bulletManager.enemyBullets.forEach(b => { b.active = false; });
+                    game.effects.emitExplosion(player.x, player.y, 80, '#ff4400', 10, true);
+                    game.effects.shake(20, 0.6);
+                    game.effects.addScreenFlash(player.x, player.y, '#ffffff', 0.3);
+                    game.audio.playBigExplosion();
+                    player.addScore(100);
+                }
+                break;
+            case 'homing': player.switchWeapon('homing'); break;
+            case 'slowMotion':
+                if (game) {
+                    game.slowMotionTimer = 5;
+                }
+                break;
         }
     }
 
@@ -121,7 +144,7 @@ class SkyPowerUpManager {
         const types = forcedType ? [forcedType] : [
             'health', 'shield', 'doubleDamage', 'rapidFire',
             'coinMagnet', 'coins', 'weaponLaser', 'weaponRocket',
-            'weaponPlasma', 'weaponTriple'
+            'weaponPlasma', 'weaponTriple', 'bomb', 'homing', 'slowMotion'
         ];
         const type = types[Math.floor(Math.random() * types.length)];
         this.powerups.push(new SkyPowerUp(x, y, type));

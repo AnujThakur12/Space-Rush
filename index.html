@@ -10,6 +10,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Space Strike</title>
     <link rel="stylesheet" href="css/style.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 
 <body>
@@ -43,34 +51,8 @@
     <script src="js/powerups.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/game.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const game = new SkyStrike();
-            game.controls._bindTouchPause = () => {
-                const btn = document.getElementById('touchPause');
-                if (btn) {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (game.state === 'playing' && !game.gameOver) {
-                            game.togglePause();
-                        }
-                    });
-                    btn.addEventListener('touchstart', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (game.state === 'playing' && !game.gameOver) {
-                            game.togglePause();
-                        }
-                    }, { passive: false });
-                }
-            };
-            game.controls._bindTouchPause();
-        });
-
-        window.addEventListener('error', (e) => {
-            console.error('Space Strike Error:', e.error || e.message);
-        });
-    </script>
+    <script type="module" src="js/renderer3d.js"></script>
+    <script type="module" src="js/boot.js"></script>
 </body>
 
 </html>

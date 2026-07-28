@@ -11,12 +11,20 @@ class SkyStorage {
             unlockedPlanes: ['falcon'],
             selectedPlane: 'falcon',
             upgrades: { health: 0, damage: 0, speed: 0, fireRate: 0, armor: 0 },
+            achievements: [],
+            stats: { totalScore: 0, totalKills: 0, totalCoins: 0, gamesPlayed: 0, bossesDefeated: 0, maxCombo: 0 },
             settings: {
                 musicVolume: 0.5,
                 sfxVolume: 0.7,
                 graphicsQuality: 'high',
                 fullscreen: false,
-                mobileVibration: true
+                mobileVibration: true,
+                joystickMode: 'dynamic',
+                joystickOpacity: 0.4,
+                joystickSize: 75,
+                joystickSensitivity: 1,
+                autoFire: true,
+                aimAssist: 0.3
             },
             leaderboard: []
         };
@@ -267,6 +275,24 @@ class SkyStorage {
     getLeaderboard() {
         return this.data.leaderboard;
     }
+
+    addAchievement(id, name, desc) {
+        const list = this.data.achievements;
+        if (list.some(a => a.id === id)) return false;
+        list.push({ id, name, desc, date: new Date().toISOString() });
+        this.set('achievements', list);
+        return true;
+    }
+
+    getAchievements() { return this.data.achievements; }
+
+    addStat(stat, amount) {
+        const stats = this.data.stats;
+        stats[stat] = (stats[stat] || 0) + (amount || 1);
+        this.set('stats', stats);
+    }
+
+    getStats() { return this.data.stats; }
 
     resetProgress() {
         for (const key in this.defaults) {

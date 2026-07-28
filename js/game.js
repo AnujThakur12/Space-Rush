@@ -1,7 +1,8 @@
 class SkyStrike {
-    constructor() {
+    constructor(renderer3d) {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.ctx.globalCompositeOperation = 'source-over';
         this.state = 'loading';
         this.lastTime = 0;
         this.paused = false;
@@ -14,6 +15,12 @@ class SkyStrike {
         this.bossLevel = false;
         this.score = 0;
         this.assetsLoaded = false;
+        this.slowMotionTimer = 0;
+
+        this.renderer3d = renderer3d || null;
+        if (this.renderer3d) {
+            this.renderer3d.attach(this);
+        }
 
         this.assets = new SkyAssets();
         window.gameAssets = this.assets;
@@ -87,14 +94,19 @@ class SkyStrike {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const winW = window.innerWidth;
         const winH = window.innerHeight;
-        const isMobile = winW < winH;
-        if (isMobile) {
-            this.canvas.height = Math.min(winH, 960) * dpr;
-            this.canvas.width = Math.round(this.canvas.height * 9 / 16);
+        const aspect = winW / winH;
+        const refW = 1600;
+        const refH = 900;
+        let canvasW, canvasH;
+        if (aspect > refW / refH) {
+            canvasH = Math.min(winH, 960) * dpr;
+            canvasW = Math.round(canvasH * aspect);
         } else {
-            this.canvas.width = Math.min(winW, 1600) * dpr;
-            this.canvas.height = Math.round(this.canvas.width * 9 / 16);
+            canvasW = Math.min(winW, 1600) * dpr;
+            canvasH = Math.round(canvasW / aspect);
         }
+        this.canvas.width = canvasW;
+        this.canvas.height = canvasH;
     }
 
     _bindKeys() {
@@ -153,8 +165,8 @@ class SkyStrike {
             if (this.state === 'account' && e.key === 'Escape') { this.state = 'menu'; this.ui.accountState = 'profile'; this.ui.accountMessage = ''; this.ui.loginInput = ''; this.ui.passInput = ''; }
 
             if (this.state === 'settings') {
-                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { this.ui.settingsMenuSelected = (this.ui.settingsMenuSelected - 1 + 7) % 7; this.audio.playMenuHover(); }
-                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { this.ui.settingsMenuSelected = (this.ui.settingsMenuSelected + 1) % 7; this.audio.playMenuHover(); }
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { this.ui.settingsMenuSelected = (this.ui.settingsMenuSelected - 1 + 8) % 8; this.audio.playMenuHover(); }
+                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { this.ui.settingsMenuSelected = (this.ui.settingsMenuSelected + 1) % 8; this.audio.playMenuHover(); }
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.audio.playMenuClick(); this._handleSettingsSelect(this.ui.settingsMenuSelected); }
                 if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this._handleSettingsAdjust(-1);
                 if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this._handleSettingsAdjust(1);
@@ -229,8 +241,8 @@ class SkyStrike {
                 for (let i = 0; i < this.ui.settingsItems.length; i++) {
                     const itemY = startY + i * itemH;
                     if (y > itemY - sy(20) && y < itemY + sy(20)) {
-                        if (i === 5) { this._handleSettingsSelect(5); return; }
-                        if (i === 6) { this.state = 'menu'; return; }
+                        if (i === 6) { this._handleSettingsSelect(6); return; }
+                        if (i === 7) { this.state = 'menu'; return; }
                         this.ui.settingsMenuSelected = i;
                         if (i <= 1) {
                             const settings = this.storage.getSettings();
@@ -306,8 +318,8 @@ class SkyStrike {
                 for (let i = 0; i < this.ui.settingsItems.length; i++) {
                     const itemY = startY + i * itemH;
                     if (y > itemY - sy(20) && y < itemY + sy(20)) {
-                        if (i === 5) { this._handleSettingsSelect(5); return; }
-                        if (i === 6) { this.state = 'menu'; return; }
+                        if (i === 6) { this._handleSettingsSelect(6); return; }
+                        if (i === 7) { this.state = 'menu'; return; }
                         this.ui.settingsMenuSelected = i;
                         if (i <= 1) {
                             const settings = this.storage.getSettings();
@@ -353,13 +365,13 @@ class SkyStrike {
 
     _handleSettingsSelect(index) {
         switch (index) {
-            case 5:
+            case 6:
                 if (confirm('Reset all progress? This cannot be undone!')) {
                     this.storage.resetProgress();
                     this.ui.notify('Progress Reset!', '#ff4444');
                 }
                 break;
-            case 6: this.state = 'menu'; break;
+            case 7: this.state = 'menu'; break;
         }
     }
 
@@ -395,6 +407,14 @@ class SkyStrike {
                 settings.mobileVibration = !settings.mobileVibration;
                 this.storage.updateSettings(settings);
                 break;
+            case 5: {
+                const modes = ['dynamic', 'fixed'];
+                let mi = modes.indexOf(settings.joystickMode);
+                mi = Math.max(0, Math.min(modes.length - 1, mi + dir));
+                settings.joystickMode = modes[mi];
+                this.storage.updateSettings(settings);
+                break;
+            }
         }
     }
 
@@ -541,6 +561,7 @@ class SkyStrike {
         this.bossLevel = false;
         this.score = 0;
         this.levelTransition = false;
+        this.slowMotionTimer = 0;
 
         const planeId = this.storage.get('selectedPlane');
         this.player.setPlaneStats(planeId);
@@ -579,6 +600,9 @@ class SkyStrike {
             const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
             this.lastTime = timestamp;
             this._update(dt);
+            if (this.renderer3d) {
+                this.renderer3d.update(dt);
+            }
             this._render();
             requestAnimationFrame(loop);
         };
@@ -601,6 +625,13 @@ class SkyStrike {
 
         if (this.state !== 'playing' || this.gameOver || this.paused) return;
 
+        if (this.slowMotionTimer > 0) {
+            this.slowMotionTimer -= dt;
+            const slowFactor = 0.4;
+            dt *= slowFactor;
+            if (this.slowMotionTimer <= 0) this.slowMotionTimer = 0;
+        }
+
         if (this.levelTransition) {
             this.levelTransitionTimer -= dt;
             if (this.levelTransitionTimer <= 0) this.levelTransition = false;
@@ -608,14 +639,32 @@ class SkyStrike {
         }
 
         this.player.update(dt, this.controls, this.canvas.width, this.canvas.height);
+        this.enemyManager.updatePerformance(this.player.kills, this.gameOver ? 1 : 0, this.player.survivalTime, this.player.health);
         this.effects.update(dt);
 
         if (this.player.alive) {
-            this.effects.emitEngineTrail(this.player.x, this.player.y, 1, '#ff6600');
+            const speed2 = Math.sqrt(this.player.vx * this.player.vx + this.player.vy * this.player.vy);
+            const trailCount = Math.max(1, Math.floor(speed2 / 150));
+            for (let i = 0; i < trailCount; i++) {
+                this.effects.emitEngineTrail(this.player.x, this.player.y, 1, '#ff6600');
+            }
 
             if (this.controls.isFiring() && this.player.canFire(dt)) {
                 const fp = this.player.getFirePosition();
-                this.bulletManager.firePlayer(fp.x, fp.y, -Math.PI / 2, this.player.weapon, this.player.damage);
+                let angle = -Math.PI / 2;
+                const aimAngle = this.controls.getAimAssist(
+                    this.bossActive && this.boss ? [this.boss] : this.enemyManager.enemies,
+                    this.player.x, this.player.y
+                );
+                if (aimAngle !== 0) {
+                    angle += aimAngle * 0.5;
+                }
+                this.bulletManager.firePlayer(fp.x, fp.y, angle, this.player.weapon, this.player.damage);
+                this.effects.emitExplosion(fp.x, fp.y - 10, 3, this.player.getWeaponColor(), 1, false);
+                this.effects.addScreenFlash(fp.x, fp.y, this.player.getWeaponColor(), 0.05);
+                if (this.renderer3d) {
+                    this.renderer3d.emitMuzzleFlash(fp.x, fp.y, this.player.getWeaponColor());
+                }
                 if (this.player.weapon === 'laser') this.audio.playLaser();
                 else if (this.player.weapon === 'rocket') this.audio.playRocket();
                 else this.audio.playShoot();
@@ -625,12 +674,17 @@ class SkyStrike {
         this._checkBossSpawn();
 
         if (this.bossActive && this.boss && this.boss.active) {
+            const wasDying = this.boss.deathTimer > 0;
             this.boss.update(dt, this.player.x, this.player.y, this.canvas.width, this.canvas.height, this.bulletManager);
+            if (wasDying && this.boss.deathTimer <= 0 && !this.boss.active) {
+                this._onBossDeathComplete();
+            }
         } else {
             this.enemyManager.update(dt, this.player.x, this.player.y, this.canvas.width, this.canvas.height, this.bulletManager);
         }
 
-        this.bulletManager.update(dt);
+        const allEnemies = this.bossActive && this.boss ? [this.boss] : this.enemyManager.enemies;
+        this.bulletManager.update(dt, allEnemies);
         this.powerUpManager.update(dt, this.canvas.height);
         this._checkCollisions();
     }
@@ -648,27 +702,39 @@ class SkyStrike {
             this.audio.playBossWarning();
             this.ui.notify(`BOSS: ${this.boss.label}`, '#ff4444');
             this.effects.shake(5, 0.5);
+            if (this.renderer3d) {
+                this.renderer3d.shake(5);
+            }
         }
     }
 
     _checkCollisions() {
         const p = this.player;
         const bm = this.bulletManager;
+        const comboMult = 1 + Math.min(p.combo, 20) * 0.1;
 
         for (let i = bm.playerBullets.length - 1; i >= 0; i--) {
             const bullet = bm.playerBullets[i];
             if (!bullet.active) continue;
+            this.effects.emitBulletTrail(bullet.x, bullet.y, bullet.color);
 
-            if (this.bossActive && this.boss && this.boss.active) {
+            if (this.bossActive && this.boss && this.boss.active && this.boss.deathTimer <= 0) {
                 if (this.collision.circleRect(
                     { x: bullet.x, y: bullet.y, radius: bullet.size },
                     this.boss.getBounds()
                 )) {
-                    const killed = this.boss.takeDamage(bullet.damage);
+                    const dmg = Math.round(bullet.damage * comboMult);
+                    const killed = this.boss.takeDamage(dmg);
                     bullet.active = false;
                     bm.playerBullets.splice(i, 1);
                     p.hitsLanded++;
+                    this.effects.addFloatingText(bullet.x, bullet.y - 10, dmg.toString(), '#ff8800', 16);
                     this.effects.emitExplosion(bullet.x, bullet.y, 5, '#ff8800', 2, false);
+                    this.effects.triggerHitStop(0.03);
+                    if (this.renderer3d) {
+                        this.renderer3d.emitExplosion(bullet.x, bullet.y, '#ff8800', 6);
+                        this.renderer3d.shake(2);
+                    }
                     if (killed) this._onBossDefeated();
                     continue;
                 }
@@ -682,11 +748,19 @@ class SkyStrike {
                     { x: bullet.x, y: bullet.y, radius: bullet.size },
                     enemy.getBounds()
                 )) {
-                    const killed = enemy.takeDamage(bullet.damage);
+                    const dmg = Math.round(bullet.damage * comboMult);
+                    const killed = enemy.takeDamage(dmg);
                     bullet.active = false;
                     bm.playerBullets.splice(i, 1);
                     p.hitsLanded++;
+                    this.effects.addFloatingText(bullet.x, bullet.y - 10, dmg.toString(), enemy.color, 14);
                     this.effects.emitExplosion(bullet.x, bullet.y, 8, enemy.color, 2, false);
+                    this.effects.triggerHitStop(0.02);
+                    this.effects.shake(2, 0.1);
+                    if (this.renderer3d) {
+                        this.renderer3d.emitExplosion(bullet.x, bullet.y, enemy.color, 5);
+                        this.renderer3d.shake(1);
+                    }
                     if (killed) this._onEnemyKilled(enemy);
                     hitEnemy = true;
                     break;
@@ -726,6 +800,10 @@ class SkyStrike {
                 if (p.alive) {
                     p.takeDamage(20);
                     this.effects.emitExplosion(enemy.x, enemy.y, 15, '#ff4400', 3, true);
+                    if (this.renderer3d) {
+                        this.renderer3d.emitExplosion(enemy.x, enemy.y, '#ff4400', 12);
+                        this.renderer3d.shake(4);
+                    }
                     enemy.active = false;
                     this.enemyManager.enemies.splice(j, 1);
                     this.audio.playExplosion();
@@ -734,7 +812,7 @@ class SkyStrike {
             }
         }
 
-        if (this.bossActive && this.boss && this.boss.active) {
+        if (this.bossActive && this.boss && this.boss.active && this.boss.deathTimer <= 0) {
             if (this.collision.circleRect(
                 { x: p.x, y: p.y, radius: p.radius },
                 this.boss.getBounds()
@@ -743,6 +821,10 @@ class SkyStrike {
                     p.takeDamage(30);
                     this.effects.emitExplosion(p.x, p.y, 10, '#ff0000', 3, false);
                     this.effects.shake(8, 0.3);
+                    if (this.renderer3d) {
+                        this.renderer3d.emitExplosion(p.x, p.y, '#ff0000', 15);
+                        this.renderer3d.shake(6);
+                    }
                     if (!p.alive) this._onPlayerDeath();
                 }
             }
@@ -755,8 +837,11 @@ class SkyStrike {
                 { x: p.x, y: p.y, radius: p.radius },
                 pu.getBounds()
             )) {
-                pu.apply(p);
+                pu.apply(p, this);
                 this.effects.emitExplosion(pu.x, pu.y, 10, pu.color, 3, false);
+                if (this.renderer3d) {
+                    this.renderer3d.emitExplosion(pu.x, pu.y, pu.color, 8);
+                }
                 this.audio.playPowerUp();
                 this.ui.notify(`+${pu.label}`, pu.color);
                 pu.active = false;
@@ -765,24 +850,74 @@ class SkyStrike {
         }
     }
 
+    _checkAchievements() {
+        const p = this.player;
+        const s = this.storage;
+        const kills = s.get('totalKills') || 0;
+        this._tryAchievement(s, 'kill_10', 'Baby Steps', 'Kill 10 enemies', kills >= 10);
+        this._tryAchievement(s, 'kill_100', 'Getting Started', 'Kill 100 enemies', kills >= 100);
+        this._tryAchievement(s, 'kill_1000', 'War Machine', 'Kill 1000 enemies', kills >= 1000);
+        this._tryAchievement(s, 'combo_10', 'Combo King', 'Reach 10x combo', p.maxCombo >= 10);
+        this._tryAchievement(s, 'combo_25', 'Unstoppable', 'Reach 25x combo', p.maxCombo >= 25);
+        this._tryAchievement(s, 'score_10k', 'Score Runner', 'Reach 10,000 points', s.get('highScore') >= 10000);
+        this._tryAchievement(s, 'score_50k', 'Elite Pilot', 'Reach 50,000 points', s.get('highScore') >= 50000);
+        this._tryAchievement(s, 'level_20', 'Veteran', 'Reach level 20', this.currentLevel >= 20);
+        this._tryAchievement(s, 'all_planes', 'Collector', 'Unlock all planes', s.get('unlockedPlanes').length >= 5);
+        const upgrades = s.get('upgrades');
+        const totalUpgrade = upgrades.health + upgrades.damage + upgrades.speed + upgrades.fireRate + upgrades.armor;
+        this._tryAchievement(s, 'max_upgrades', 'Fully Loaded', 'Max out all upgrades', totalUpgrade >= 25);
+    }
+
+    _tryAchievement(s, id, name, desc, condition) {
+        if (condition) {
+            const unlocked = s.addAchievement(id, name, desc);
+            if (unlocked) {
+                this.ui.notify(`🏆 ${name}`, '#ffd700');
+                this.audio.playPowerUp();
+            }
+        }
+    }
+
     _onEnemyKilled(enemy) {
-        this.player.addScore(enemy.score);
-        this.player.addCoins(enemy.coins);
+        this.player.addCombo();
+        const comboMult = 1 + Math.min(this.player.combo, 20) * 0.1;
+        const bonusScore = Math.floor(enemy.score * comboMult);
+        this.player.addScore(bonusScore);
+        this.player.addCoins(enemy.coins + Math.floor(this.player.combo * 0.5));
         this.player.addXP(enemy.score);
         this.player.kills++;
+        this.storage.addStat('totalKills', 1);
+        this.storage.addStat('totalScore', bonusScore);
         this.audio.playExplosion();
         this.effects.emitExplosion(enemy.x, enemy.y, 15, enemy.color, 3, true);
+        this.effects.shake(3, 0.12);
+        if (this.renderer3d) {
+            this.renderer3d.emitExplosion(enemy.x, enemy.y, enemy.color, 15);
+            this.renderer3d.shake(2);
+        }
+        if (this.player.combo >= 5) {
+            this.effects.addFloatingText(enemy.x, enemy.y - 30, `${this.player.combo}x COMBO!`, '#ffd700', 20);
+        }
         this.powerUpManager.checkDrop(enemy.x, enemy.y);
+        this._checkAchievements();
     }
 
     _onBossDefeated() {
         this.audio.playBigExplosion();
-        this.effects.emitExplosion(this.boss.x, this.boss.y, 60, '#ff8800', 8, true);
-        this.effects.shake(15, 0.8);
+        this.effects.emitExplosion(this.boss.x, this.boss.y, 30, '#ff8800', 5, true);
+        this.effects.shake(10, 0.5);
+        if (this.renderer3d) {
+            this.renderer3d.emitExplosion(this.boss.x, this.boss.y, '#ff8800', 40);
+            this.renderer3d.shake(12);
+        }
         this.ui.notify(`BOSS DEFEATED! +${this.boss.score}pts`, '#ffd700');
+    }
+
+    _onBossDeathComplete() {
         this.audio.playVictory();
         this.player.addScore(this.boss.score);
         this.player.addCoins(this.boss.coins);
+        this.storage.addStat('bossesDefeated', 1);
         for (let i = 0; i < 5; i++) {
             this.powerUpManager.spawnAt(
                 this.boss.x + (Math.random() - 0.5) * 80,
@@ -810,9 +945,18 @@ class SkyStrike {
         this.audio.stopMusic();
         this.effects.emitExplosion(this.player.x, this.player.y, 50, '#ff4400', 6, true);
         this.effects.shake(12, 0.5);
+        if (this.renderer3d) {
+            this.renderer3d.emitExplosion(this.player.x, this.player.y, '#ff4400', 50);
+            this.renderer3d.shake(10);
+        }
         this.storage.addScore(this.player.score);
         this.storage.addCoins(this.player.coins);
         this.storage.set('totalKills', (this.storage.get('totalKills') || 0) + this.player.kills);
+        this.storage.addStat('gamesPlayed', 1);
+        this.storage.addStat('totalCoins', this.player.coins);
+        if (this.player.maxCombo > (this.storage.get('stats')?.maxCombo || 0)) {
+            this.storage.get('stats').maxCombo = this.player.maxCombo;
+        }
 
         const leaderboardEntry = {
             name: this.storage.getUsername() || 'Pilot',
@@ -835,45 +979,28 @@ class SkyStrike {
         ctx.clearRect(0, 0, w, h);
 
         switch (this.state) {
-            case 'loading':
-                this.ui.renderBackground();
-                break;
             case 'menu':
-                this.ui.renderBackground();
                 this.ui.renderMainMenu();
                 break;
             case 'highscores':
-                this.ui.renderBackground();
                 this.ui.renderHighScores();
                 break;
             case 'settings':
-                this.ui.renderBackground();
                 this.ui.renderSettings();
                 break;
             case 'about':
-                this.ui.renderBackground();
                 this.ui.renderAbout();
                 break;
             case 'account':
-                this.ui.renderBackground();
                 this.ui.renderAccount();
                 break;
             case 'plane_select':
-                this.ui.renderBackground();
                 this.ui.renderPlaneSelect();
                 break;
             case 'upgrade':
-                this.ui.renderBackground();
                 this.ui.renderUpgradeMenu();
                 break;
             case 'playing':
-                this.ui.renderBackground();
-                this.enemyManager.render(ctx);
-                if (this.bossActive && this.boss) this.boss.render(ctx, w);
-                this.powerUpManager.render(ctx);
-                this.bulletManager.render(ctx);
-                this.player.render(ctx);
-                this.effects.render(ctx);
                 this.ui.renderHUD();
                 this.ui.renderBossBar();
                 this.ui.renderBossWarning();

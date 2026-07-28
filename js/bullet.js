@@ -7,13 +7,15 @@ class PlayerBullet {
         this.damage = damage || 10;
         this.active = true;
         this.friendly = true;
+        this.target = null;
 
         const configs = {
             machinegun: { speed: 600, size: 3, color: '#ffff00', lifetime: 1.5, sprite: 'weapon_machinegun' },
             laser: { speed: 800, size: 4, color: '#00ffff', lifetime: 0.8, sprite: 'weapon_laser' },
             rocket: { speed: 350, size: 6, color: '#ff4400', lifetime: 2.0, sprite: 'weapon_rocket' },
             plasma: { speed: 500, size: 8, color: '#aa00ff', lifetime: 1.2, sprite: 'weapon_plasma' },
-            tripleshot: { speed: 600, size: 3, color: '#ffaa00', lifetime: 1.5, sprite: 'weapon_tripleshot' }
+            tripleshot: { speed: 600, size: 3, color: '#ffaa00', lifetime: 1.5, sprite: 'weapon_tripleshot' },
+            homing: { speed: 300, size: 5, color: '#ff88ff', lifetime: 3.0, sprite: 'weapon_rocket' }
         };
 
         const cfg = configs[type] || configs.machinegun;
@@ -27,13 +29,42 @@ class PlayerBullet {
         this.vy = Math.sin(this.angle) * this.speed;
 
         if (type === 'rocket') this.trailTimer = 0;
+        if (type === 'homing') this.homingStrength = 4;
     }
 
-    update(dt) {
+    update(dt, enemies) {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.lifetime -= dt;
         if (this.type === 'rocket') this.trailTimer += dt;
+        if (this.type === 'homing' && enemies) {
+            if (!this.target || !this.target.active) {
+                let closest = null;
+                let closestDist = Infinity;
+                for (const e of enemies) {
+                    if (!e.active) continue;
+                    const dx = e.x - this.x;
+                    const dy = e.y - this.y;
+                    const dist = dx * dx + dy * dy;
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closest = e;
+                    }
+                }
+                this.target = closest;
+            }
+            if (this.target && this.target.active) {
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const targetAngle = Math.atan2(dy, dx);
+                let diff = targetAngle - this.angle;
+                if (diff > Math.PI) diff -= Math.PI * 2;
+                if (diff < -Math.PI) diff += Math.PI * 2;
+                this.angle += Math.sign(diff) * Math.min(Math.abs(diff), this.homingStrength * dt);
+                this.vx = Math.cos(this.angle) * this.speed;
+                this.vy = Math.sin(this.angle) * this.speed;
+            }
+        }
         if (this.lifetime <= 0 || this.x < -200 || this.x > 2000 || this.y < -200 || this.y > 2000) {
             this.active = false;
         }
@@ -178,9 +209,9 @@ class SkyBulletManager {
         this.fireEnemy(x, y, vx, vy, size, color, damage);
     }
 
-    update(dt) {
+    update(dt, enemies) {
         for (let i = this.playerBullets.length - 1; i >= 0; i--) {
-            this.playerBullets[i].update(dt);
+            this.playerBullets[i].update(dt, enemies);
             if (!this.playerBullets[i].active) this.playerBullets.splice(i, 1);
         }
         for (let i = this.enemyBullets.length - 1; i >= 0; i--) {

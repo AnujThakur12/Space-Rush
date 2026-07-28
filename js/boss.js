@@ -24,6 +24,7 @@ class SkyBoss {
         this.patternIndex = 0;
         this.moveDir = 1;
         this.defeated = false;
+        this.deathTimer = 0;
         this.spriteName = 'boss_missile_commander';
         this._setupBoss(level);
     }
@@ -64,6 +65,11 @@ class SkyBoss {
         if (!this.active) return;
         this.elapsed += dt;
         if (this.hitFlash > 0) this.hitFlash -= dt;
+        if (this.deathTimer > 0) {
+            this.deathTimer -= dt;
+            if (this.deathTimer <= 0) { this.deathTimer = 0; this.active = false; }
+            return;
+        }
         if (this.intro) {
             this.introTimer -= dt;
             if (this.y < this.introTargetY) this.y += 100 * dt;
@@ -149,7 +155,7 @@ class SkyBoss {
     }
 
     takeDamage(amount) {
-        if (!this.active || this.intro) return false;
+        if (!this.active || this.intro || this.deathTimer > 0) return false;
         if (this.shieldHealth > 0) {
             this.shieldHealth -= amount;
             this.hitFlash = 0.08;
@@ -158,7 +164,20 @@ class SkyBoss {
             this.health -= amount;
             this.hitFlash = 0.1;
         }
-        if (this.health <= 0) { this.health = 0; this.defeated = true; this.active = false; return true; }
+        if (this.health <= 0) {
+            this.health = 0;
+            this.defeated = true;
+            this.deathTimer = 1.5;
+            this.phase = 99;
+            return true;
+        }
+        if (this.health < this.maxHealth * 0.3 && this.phase < 3) {
+            this.phase = 3;
+            this.hitFlash = 0.3;
+        } else if (this.health < this.maxHealth * 0.6 && this.phase < 2) {
+            this.phase = 2;
+            this.hitFlash = 0.3;
+        }
         return false;
     }
 
@@ -168,16 +187,39 @@ class SkyBoss {
         const assets = window.gameAssets;
         let sprite = assets ? assets.getImage(this.spriteName) : null;
 
+        if (this.deathTimer > 0) {
+            const deathAlpha = Math.min(1, this.deathTimer / 1.5);
+            const deathScale = 1 + (1 - deathAlpha) * 0.5;
+            ctx.globalAlpha = deathAlpha;
+            ctx.translate(this.x, this.y);
+            ctx.scale(deathScale, deathScale);
+            if (sprite) {
+                ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
+            } else {
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = '#ff8800';
+                ctx.beginPath(); ctx.arc(0, 0, this.size, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.fillStyle = `rgba(255,200,0,${(1 - deathAlpha) * 0.5})`;
+            ctx.shadowBlur = 40;
+            ctx.shadowColor = '#ff8800';
+            ctx.beginPath(); ctx.arc(0, 0, this.size * (1 + (1 - deathAlpha)), 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+            return;
+        }
+
         if (this.intro) {
             const alpha = Math.min(1, 1 - this.introTimer / 2);
             ctx.globalAlpha = alpha;
         }
 
         ctx.translate(this.x, this.y);
+        const phaseColor = this.phase >= 3 ? '#ff0000' : this.phase >= 2 ? '#ff8800' : this.color;
 
         if (sprite) {
             ctx.shadowBlur = 25;
-            ctx.shadowColor = this.color + '80';
+            ctx.shadowColor = phaseColor + '80';
             if (this.hitFlash > 0) {
                 ctx.globalAlpha = 0.5;
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
@@ -192,14 +234,14 @@ class SkyBoss {
             ctx.shadowBlur = 0;
         } else {
             if (this.hitFlash > 0) { ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#ffffff'; }
-            else { ctx.fillStyle = this.color; ctx.shadowColor = this.color; }
+            else { ctx.fillStyle = phaseColor; ctx.shadowColor = phaseColor; }
             ctx.shadowBlur = 20;
             ctx.beginPath(); ctx.arc(0, 0, this.size, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = this.hitFlash > 0 ? '#ffffff' : '#333333';
             ctx.shadowBlur = 0;
             ctx.beginPath(); ctx.arc(0, 0, this.size * 0.7, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = this.hitFlash > 0 ? '#cccccc' : this.color;
-            ctx.shadowBlur = 10; ctx.shadowColor = this.color;
+            ctx.fillStyle = this.hitFlash > 0 ? '#cccccc' : phaseColor;
+            ctx.shadowBlur = 10; ctx.shadowColor = phaseColor;
             ctx.beginPath(); ctx.arc(0, 0, this.size * 0.4, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 0;
             ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center';
@@ -214,17 +256,24 @@ class SkyBoss {
             ctx.beginPath(); ctx.arc(0, 0, this.size + 10, 0, Math.PI * 2); ctx.stroke();
         }
 
-        if (!this.intro) {
+        if (!this.intro && this.deathTimer <= 0) {
             ctx.shadowBlur = 0;
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.fillRect(-this.size, this.size + 15, this.size * 2, 8);
-            ctx.fillStyle = '#ff4444';
+            const hpColor = this.phase >= 3 ? '#ff0000' : this.phase >= 2 ? '#ff8800' : '#ff4444';
+            ctx.fillStyle = hpColor;
             ctx.fillRect(-this.size + 1, this.size + 16, (this.size * 2 - 2) * (this.health / this.maxHealth), 6);
+            if (this.phase >= 2) {
+                ctx.fillStyle = '#ffff00';
+                ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('ENRAGED', 0, this.size + 30);
+            }
         }
 
         ctx.shadowBlur = 20;
-        ctx.shadowColor = this.color + '40';
-        ctx.strokeStyle = this.color;
+        ctx.shadowColor = phaseColor + '40';
+        ctx.strokeStyle = phaseColor;
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.15 + 0.1 * Math.sin(this.elapsed * 2);
         ctx.beginPath(); ctx.arc(0, 0, this.size + 20 + 5 * Math.sin(this.elapsed * 3), 0, Math.PI * 2); ctx.stroke();
@@ -233,13 +282,17 @@ class SkyBoss {
 
         ctx.restore();
 
-        if (!this.intro) {
+        if (!this.intro && this.deathTimer <= 0) {
             ctx.save();
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 14px monospace';
             ctx.textAlign = 'center';
             ctx.shadowBlur = 5; ctx.shadowColor = '#000000';
             ctx.fillText(this.label, canvasW / 2, 30);
+            if (this.phase >= 2) {
+                ctx.fillStyle = '#ffff00';
+                ctx.fillText('⚠ ENRAGED ⚠', canvasW / 2, 50);
+            }
             ctx.restore();
         }
     }

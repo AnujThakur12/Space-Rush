@@ -34,6 +34,14 @@ class SkyPlayer {
         this.hitsLanded = 0;
         this.survivalTime = 0;
         this.engineFlicker = 0;
+        this.vx = 0;
+        this.vy = 0;
+        this.acceleration = 800;
+        this.friction = 6;
+        this.combo = 0;
+        this.comboTimer = 0;
+        this.maxCombo = 0;
+        this.killStreak = 0;
         this.assets = null;
     }
 
@@ -72,9 +80,23 @@ class SkyPlayer {
         if (!this.alive) return;
         this.survivalTime += dt;
         const move = controls.getMovement();
-        const speed = this.speed * dt;
-        this.x += move.dx * speed;
-        this.y += move.dy * speed;
+        if (move.dx !== 0 || move.dy !== 0) {
+            this.vx += move.dx * this.acceleration * dt;
+            this.vy += move.dy * this.acceleration * dt;
+            const maxV = this.speed;
+            const speed2 = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            if (speed2 > maxV) {
+                this.vx = (this.vx / speed2) * maxV;
+                this.vy = (this.vy / speed2) * maxV;
+            }
+        } else {
+            this.vx *= (1 - this.friction * dt);
+            this.vy *= (1 - this.friction * dt);
+            if (Math.abs(this.vx) < 5) this.vx = 0;
+            if (Math.abs(this.vy) < 5) this.vy = 0;
+        }
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
         this.x = Math.max(25, Math.min(canvasW - 25, this.x));
         this.y = Math.max(25, Math.min(canvasH - 25, this.y));
         if (this.invulnerableTimer > 0) this.invulnerableTimer -= dt;
@@ -89,7 +111,18 @@ class SkyPlayer {
             if (this.rapidFireTimer <= 0) this.fireRate = this.baseFireRate;
         }
         if (this.coinMagnetTimer > 0) this.coinMagnetTimer -= dt;
+        if (this.comboTimer > 0) {
+            this.comboTimer -= dt;
+            if (this.comboTimer <= 0) { this.combo = 0; this.killStreak = 0; }
+        }
         this.engineFlicker += dt * 10;
+    }
+
+    addCombo() {
+        this.combo++;
+        this.comboTimer = 3;
+        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+        this.killStreak++;
     }
 
     canFire(dt) {
@@ -148,7 +181,7 @@ class SkyPlayer {
     getWeaponColor() {
         const colors = {
             machinegun: '#ffff00', laser: '#00ffff', rocket: '#ff4400',
-            plasma: '#aa00ff', tripleshot: '#ffaa00'
+            plasma: '#aa00ff', tripleshot: '#ffaa00', homing: '#ff88ff'
         };
         return colors[this.weapon] || '#ffff00';
     }
@@ -156,7 +189,7 @@ class SkyPlayer {
     getWeaponLabel() {
         const labels = {
             machinegun: 'Machine Gun', laser: 'Laser Cannon', rocket: 'Rockets',
-            plasma: 'Plasma Cannon', tripleshot: 'Triple Shot'
+            plasma: 'Plasma Cannon', tripleshot: 'Triple Shot', homing: 'Homing Missile'
         };
         return labels[this.weapon] || 'Machine Gun';
     }
@@ -249,6 +282,11 @@ class SkyPlayer {
         this.health = this.maxHealth;
         this.shield = 0;
         this.alive = true;
+        this.vx = 0;
+        this.vy = 0;
+        this.combo = 0;
+        this.comboTimer = 0;
+        this.killStreak = 0;
         this.invulnerableTimer = 1.5;
         this.doubleDamageTimer = 0;
         this.rapidFireTimer = 0;

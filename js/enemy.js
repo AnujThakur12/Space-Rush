@@ -399,30 +399,44 @@ class SkyEnemyManager {
         this.level = 1;
         this.difficulty = 1;
         this.maxEnemies = 15;
+        this.playerPerformance = 0;
+        this.waveTimer = 0;
+        this.waveSize = 3;
+        this.currentWave = 0;
+    }
+
+    updatePerformance(playerKills, playerDeaths, survivalTime, playerHealth) {
+        const killRate = playerKills / Math.max(1, survivalTime);
+        const healthRatio = playerHealth / 100;
+        this.playerPerformance = killRate * 0.6 + (1 - healthRatio) * 0.4;
+        this.playerPerformance = Math.max(0, Math.min(2, this.playerPerformance));
     }
 
     setLevel(level) {
         this.level = level;
         this.difficulty = 1 + (level - 1) * 0.18;
-        this.spawnInterval = Math.max(0.2, 2.0 - level * 0.06);
-        this.maxEnemies = Math.min(50, 15 + level * 3);
+        this.spawnInterval = Math.max(0.15, 2.0 - level * 0.06 - this.playerPerformance * 0.1);
+        this.maxEnemies = Math.min(50, 15 + level * 3 + Math.floor(this.playerPerformance * 5));
+        this.waveSize = Math.min(12, 3 + Math.floor(level / 2) + Math.floor(this.playerPerformance));
     }
 
     spawnEnemy(canvasW, canvasH) {
         const x = 50 + Math.random() * (canvasW - 100);
         const y = -40;
         const lvl = this.level;
+        const perfBonus = Math.floor(this.playerPerformance * 2);
         const types = [
-            { type: 'drone', weight: 40 },
-            { type: 'fighter', weight: 30 },
-            { type: 'bomber', weight: 15 },
-            { type: 'stealth', weight: 10 },
-            { type: 'elite', weight: 5 }
+            { type: 'drone', weight: 40 - perfBonus * 3 },
+            { type: 'fighter', weight: 30 + perfBonus },
+            { type: 'bomber', weight: 15 + perfBonus },
+            { type: 'stealth', weight: 10 + perfBonus },
+            { type: 'elite', weight: 5 + perfBonus }
         ];
+        types.forEach(t => t.weight = Math.max(2, t.weight));
         if (this.level < 2) { types[2].weight = 5; types[3].weight = 0; types[4].weight = 0; }
         else if (this.level < 3) { types[3].weight = 5; types[4].weight = 0; }
-        else if (this.level < 4) { types[4].weight = 3; }
-        else { types[4].weight = Math.min(20, 5 + this.level); }
+        else if (this.level < 4) { types[4].weight = Math.min(3 + perfBonus, 8); }
+        else { types[4].weight = Math.min(20 + perfBonus * 2, 30); }
         const totalWeight = types.reduce((s, t) => s + t.weight, 0);
         let r = Math.random() * totalWeight;
         let selected = types[0].type;
@@ -438,10 +452,16 @@ class SkyEnemyManager {
     }
 
     update(dt, playerX, playerY, canvasW, canvasH, bulletManager) {
+        this.waveTimer += dt;
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.enemies.length < this.maxEnemies) {
             this.spawnTimer = this.spawnInterval;
-            this.enemies.push(this.spawnEnemy(canvasW, canvasH));
+            const spawnCount = this.spawnInterval > 0.5 ? 2 : 1;
+            for (let i = 0; i < spawnCount; i++) {
+                if (this.enemies.length < this.maxEnemies) {
+                    this.enemies.push(this.spawnEnemy(canvasW, canvasH));
+                }
+            }
         }
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const e = this.enemies[i];
@@ -453,7 +473,7 @@ class SkyEnemyManager {
     }
 
     render(ctx) { this.enemies.forEach(e => e.render(ctx)); }
-    clear() { this.enemies = []; this.spawnTimer = 0; }
+    clear() { this.enemies = []; this.spawnTimer = 0; this.waveTimer = 0; }
     getCount() { return this.enemies.length; }
 }
 
