@@ -20,10 +20,10 @@ const PLANE_STATS: Record<string, { speed: number; health: number; damage: numbe
 
 const ENEMY_TYPES: Record<EnemyType, { hp: number; speed: number; score: number; coins: number; fireRate: number; size: number }> = {
   basic: { hp: 1, speed: 120, score: 100, coins: 5, fireRate: 0, size: 28 },
-  fast: { hp: 1, speed: 220, score: 150, coins: 7, fireRate: 0, size: 22 },
-  tank: { hp: 4, speed: 80, score: 250, coins: 12, fireRate: 0, size: 34 },
-  shooter: { hp: 2, speed: 100, score: 200, coins: 10, fireRate: 2, size: 30 },
-  elite: { hp: 6, speed: 140, score: 500, coins: 25, fireRate: 1.5, size: 36 },
+  fast: { hp: 1, speed: 220, score: 150, coins: 7, fireRate: 0, size: 32 },
+  tank: { hp: 4, speed: 80, score: 250, coins: 12, fireRate: 0, size: 48 },
+  shooter: { hp: 2, speed: 100, score: 200, coins: 10, fireRate: 2, size: 32 },
+  elite: { hp: 6, speed: 140, score: 500, coins: 25, fireRate: 1.5, size: 44 },
 }
 
 const UPGRADE_COST_BASE = 200
@@ -186,6 +186,7 @@ export class GameEngine {
       this.updatePlayer(dt)
       this.updateEnemies(dt)
       this.checkBossSpawn()
+      this.updateBoss(dt)
       this.updateBullets(dt)
       this.updatePowerups(dt)
       this.checkCollisions()
@@ -415,13 +416,17 @@ export class GameEngine {
   private updateEnemies(dt: number): void {
     if (this.bossActive) return
 
-    this.difficulty = 1 + (this.currentLevel - 1) * 0.15
-    const spawnRate = Math.max(0.3, 1.2 / this.difficulty)
+    this.difficulty = 1 + (this.currentLevel - 1) * 0.2
+    const spawnRate = Math.max(0.15, 0.8 / this.difficulty)
 
     this.enemyTimer -= dt
     if (this.enemyTimer <= 0) {
       this.spawnEnemy()
-      this.enemyTimer = spawnRate + rand(-0.2, 0.2)
+      const burst = Math.random() < 0.3 ? 2 : 1
+      for (let i = 1; i < burst; i++) {
+        this.spawnEnemy()
+      }
+      this.enemyTimer = spawnRate + rand(-0.15, 0.15)
     }
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -433,6 +438,17 @@ export class GameEngine {
 
       e.y += e.vy * dt
       e.x += e.vx * dt
+
+      if (e.type === 'fast') {
+        e.vx += Math.sin(this.gameTime * 3 + e.y * 0.01) * 60 * dt
+        e.vx *= 0.99
+      } else if (e.type === 'tank') {
+        e.vx = Math.sin(this.gameTime * 0.5 + e.x * 0.01) * 30
+      } else if (e.type === 'shooter') {
+        if (e.y > this.canvasH * 0.3 && e.y < this.canvasH * 0.5) {
+          e.vy *= 0.98
+        }
+      }
 
       if (e.y > this.canvasH + 60) {
         e.alive = false
@@ -455,14 +471,24 @@ export class GameEngine {
     if (this.currentLevel >= 3) types.push('shooter', 'shooter')
     if (this.currentLevel >= 5) types.push('elite')
     if (this.currentLevel >= 8) types.push('elite', 'elite')
+    if (this.currentLevel >= 10) types.push('elite', 'shooter', 'shooter')
 
+    const fromSide = Math.random() < 0.2
     const type = types[Math.floor(Math.random() * types.length)]
     const def = ENEMY_TYPES[type]
     const lvlMult = 1 + (this.currentLevel - 1) * 0.1
 
+    const x = fromSide
+      ? (Math.random() < 0.5 ? -40 : this.canvasW + 40)
+      : rand(50, this.canvasW - 50)
+    const y = fromSide ? rand(50, this.canvasH * 0.5) : -40
+    const sideVx = fromSide
+      ? (x < 0 ? rand(80, 150) : rand(-150, -80))
+      : rand(-20, 20)
+
     const e: Enemy = {
-      x: rand(50, this.canvasW - 50),
-      y: -40,
+      x,
+      y,
       z: 0,
       width: def.size,
       height: def.size,
@@ -473,8 +499,8 @@ export class GameEngine {
       alive: true,
       fireTimer: rand(0, def.fireRate),
       fireRate: def.fireRate,
-      vx: rand(-20, 20),
-      vy: (def.speed + rand(-20, 20)) * (0.5 + Math.random() * 0.5),
+      vx: sideVx,
+      vy: fromSide ? 0 : (def.speed + rand(-20, 20)) * (0.5 + Math.random() * 0.5),
       shootAngle: Math.PI / 2,
       flashTimer: 0,
       score: def.score,
@@ -524,6 +550,114 @@ export class GameEngine {
         this.screenShakeIntensity = 8
         this.flashTimer = 0.3
         this.flashColor = '#ff0000'
+      }
+    }
+  }
+
+  private updateBoss(dt: number): void {
+    if (!this.boss || !this.boss.alive) return
+
+    const b = this.boss
+
+    if (b.spawnTimer > 0) {
+      b.spawnTimer -= dt
+      if (b.spawnTimer <= 0) {
+        b.spawnTimer = 0
+      }
+      b.y += 60 * dt
+      b.y = Math.min(b.y, 100)
+      return
+    }
+
+    if (b.deathTimer > 0) {
+      b.deathTimer -= dt
+      return
+    }
+
+    b.moveTimer += dt
+    b.ringRotation += dt * 0.3
+
+    if (b.introTimer > 0) {
+      b.introTimer -= dt
+    }
+
+    b.targetX = this.canvasW / 2 + Math.sin(b.moveTimer * 0.3) * (this.canvasW * 0.25)
+    b.targetY = 80 + Math.sin(b.moveTimer * 0.2) * 40
+
+    const dx = b.targetX - b.x
+    const dy = b.targetY - b.y
+    b.vx += dx * 0.5 * dt
+    b.vy += dy * 0.5 * dt
+    b.vx *= 0.98
+    b.vy *= 0.98
+    b.x += b.vx * dt * 60
+    b.y += b.vy * dt * 60
+
+    b.x = clamp(b.x, this.canvasW * 0.1, this.canvasW * 0.9)
+    b.y = clamp(b.y, 40, 150)
+
+    b.attackTimer += dt
+    const fireRate = Math.max(0.5, 2 - b.phase * 0.4)
+    if (b.attackTimer >= fireRate) {
+      b.attackTimer = 0
+      this.fireBossWeapon()
+    }
+
+    if (b.phase >= 2 && Math.random() < 0.01) {
+      this.emitSparks(b.x + rand(-60, 60), b.y + rand(-40, 40), '#ff0044')
+    }
+  }
+
+  private fireBossWeapon(): void {
+    if (!this.boss) return
+
+    const b = this.boss
+    const count = b.phase
+    const angleStep = Math.PI * 2 / count
+
+    for (let i = 0; i < count; i++) {
+      const baseAngle = -Math.PI / 2 + i * angleStep + Math.sin(this.gameTime * 2 + i) * 0.2
+      const speed = 180 + b.phase * 20
+
+      const bullet: Bullet = {
+        x: b.x + Math.cos(baseAngle) * 40,
+        y: b.y + Math.sin(baseAngle) * 40,
+        z: 0,
+        width: 4,
+        height: 8,
+        speed,
+        vx: Math.cos(baseAngle) * speed,
+        vy: Math.sin(baseAngle) * speed,
+        damage: 1 + b.phase,
+        isPlayer: false,
+        alive: true,
+        timer: 4,
+        color: '#ff4444',
+      }
+      this.bullets.push(bullet)
+    }
+
+    if (b.phase >= 2) {
+      const dx = this.player.x - b.x
+      const dy = this.player.y - b.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist > 0) {
+        const speed = 250
+        const bullet: Bullet = {
+          x: b.x, y: b.y + 30,
+          z: 0,
+          width: 4,
+          height: 8,
+          speed,
+          vx: (dx / dist) * speed,
+          vy: (dy / dist) * speed,
+          damage: 2,
+          isPlayer: false,
+          alive: true,
+          timer: 3,
+          color: '#ff6600',
+        }
+        this.bullets.push(bullet)
       }
     }
   }

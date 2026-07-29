@@ -1,10 +1,11 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import type { GameEngine } from '../engine/GameEngine'
 import { useGameStore } from '../store/gameStore'
+import { spriteManager } from '../engine/SpriteManager'
 import { drawBackground } from './Background'
 import { drawPlayer, drawEnemy, drawBoss, drawBullet, drawPowerupIcon } from './Sprites'
 import { drawParticles } from './Particles'
-import { drawFlash, drawEngineTrail, drawMuzzleFlash, applyBloom, initBloomCanvas } from './effects'
+import { drawFlash, drawEngineTrail, drawMuzzleFlash } from './effects'
 
 interface GameCanvasProps {
   engine: GameEngine
@@ -15,9 +16,16 @@ export function GameCanvas({ engine }: GameCanvasProps) {
   const rafRef = useRef(0)
   const lastTimeRef = useRef(0)
   const screenRef = useRef(engine)
+  const [spritesReady, setSpritesReady] = useState(false)
   const quality = useGameStore((s) => s.settings.quality)
 
   screenRef.current = engine
+
+  useEffect(() => {
+    spriteManager.loadAll().then(() => {
+      setSpritesReady(true)
+    })
+  }, [])
 
   const render = useCallback((timestamp: number) => {
     const engine = screenRef.current
@@ -35,8 +43,6 @@ export function GameCanvas({ engine }: GameCanvasProps) {
 
     engine.canvasW = cw
     engine.canvasH = ch
-
-    const useBloom = quality !== 'low'
 
     ctx.save()
 
@@ -79,20 +85,10 @@ export function GameCanvas({ engine }: GameCanvasProps) {
 
     ctx.restore()
 
-    if (useBloom) {
-      const bloomBuf = initBloomCanvas(cw, ch)
-      const bCtx = bloomBuf.getContext('2d')
-      if (bCtx) {
-        bCtx.clearRect(0, 0, cw, ch)
-        bCtx.drawImage(canvas, 0, 0)
-        applyBloom(bloomBuf, ctx, cw, ch)
-      }
-    }
-
     drawFlash(ctx, engine.flashIntensity, engine.flashColor, cw, ch)
 
     rafRef.current = requestAnimationFrame(render)
-  }, [quality])
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -122,6 +118,18 @@ export function GameCanvas({ engine }: GameCanvasProps) {
       cancelAnimationFrame(rafRef.current)
     }
   }, [engine, render])
+
+  if (!spritesReady) {
+    return (
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          zIndex: 1, display: 'block',
+        }}
+      />
+    )
+  }
 
   return (
     <canvas
