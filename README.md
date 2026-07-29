@@ -4,7 +4,7 @@ A modern arcade-style 2D space shooter. Endless levels, epic boss battles, unloc
 
 ## Play Now
 
-**[spacestrike.netlify.app](https://spacestrike.netlify.app/)**
+**[spacerush.vercel.app](https://spacerush.vercel.app/)**
 
 ## Features
 
