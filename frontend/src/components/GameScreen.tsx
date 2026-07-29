@@ -43,27 +43,34 @@ export function GameScreen({ engine, onRestart, onMenu, onTogglePause }: GameScr
       <HUD />
       <Notifications />
       <TouchControls />
+      {/* Pause button: top-right with safe padding, outside score area */}
       <button
         onClick={onTogglePause}
         style={{
-          position: 'fixed', top: 8, right: 8, zIndex: 15,
-          width: 44, height: 44,
+          position: 'fixed',
+          top: 'max(12px, env(safe-area-inset-top, 12px))',
+          right: 'max(12px, env(safe-area-inset-right, 12px))',
+          zIndex: 25,
+          width: 40,
+          height: 40,
           borderRadius: 8,
-          background: 'rgba(255,255,255,0.1)',
-          border: '1px solid rgba(255,255,255,0.2)',
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.15)',
           color: '#fff',
-          fontSize: 16,
+          fontSize: 18,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
+          pointerEvents: 'auto',
         }}
         aria-label="Pause"
       >
         ⏸
       </button>
+
       {screen === 'gameover' && engine.gameOver && (
         <GameOverOverlay onRestart={onRestart} onMenu={onMenu} />
       )}

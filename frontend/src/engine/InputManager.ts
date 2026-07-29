@@ -15,17 +15,19 @@ class InputManager {
     mouseX: 0,
     mouseY: 0,
     mouseActive: false,
+    aimX: 0,
+    aimY: 0,
+    aimAngle: -Math.PI / 2,
   }
 
   private canvas: HTMLCanvasElement | null = null
-  private touchIdentifier: number | null = null
-  private joystickCenterX = 0
-  private joystickCenterY = 0
-  private joystickActive = false
+
   private onPause?: () => void
-  private keysDown: Record<string, boolean> = {}
   private mouseOnCanvas = false
-  private mouseInside = false
+  private prevTouchCount = 0
+
+  private gamepadIndex: number | null = null
+  private gamepadInterval: ReturnType<typeof setInterval> | null = null
 
   init(canvas: HTMLCanvasElement, onPause?: () => void): void {
     this.canvas = canvas
@@ -42,18 +44,61 @@ class InputManager {
     canvas.addEventListener('mousedown', this.onMouseDown)
     canvas.addEventListener('mousemove', this.onMouseMove)
     canvas.addEventListener('mouseup', this.onMouseUp)
-    canvas.addEventListener('mouseenter', () => { this.mouseInside = true })
-    canvas.addEventListener('mouseleave', () => { this.mouseInside = false })
+    canvas.addEventListener('mouseenter', () => { this.mouseOnCanvas = true })
+    canvas.addEventListener('mouseleave', () => { this.mouseOnCanvas = false })
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         this.state.keys.clear()
-        this.state.firing = false
-        this.state.touchActive = false
-        this.joystickActive = false
+        if (!this.state.touchActive) this.state.firing = false
+        this.state.mouseActive = false
         this.mouseOnCanvas = false
       }
     })
+
+    this.startGamepadPolling()
+  }
+
+  private startGamepadPolling(): void {
+    if (this.gamepadInterval) return
+    this.gamepadInterval = setInterval(() => {
+      const gamepads = navigator.getGamepads?.()
+      if (!gamepads) return
+      for (const gp of gamepads) {
+        if (!gp) continue
+        this.gamepadIndex = gp.index
+        this.processGamepad(gp)
+        break
+      }
+    }, 50)
+  }
+
+  private processGamepad(gp: Gamepad): void {
+    const DEADZONE = 0.2
+    let lx = gp.axes[0] || 0
+    let ly = gp.axes[1] || 0
+    if (Math.abs(lx) < DEADZONE) lx = 0
+    if (Math.abs(ly) < DEADZONE) ly = 0
+
+    const gpState = useGameStore.getState()
+    const settings = gpState.settings
+    const screen = gpState.screen
+    const isPlaying = screen === 'playing'
+
+    if (isPlaying) {
+      this.state.firing = settings.autoFire ||
+        gp.buttons[0]?.pressed ||
+        gp.buttons[5]?.pressed ||
+        gp.buttons[7]?.pressed
+    }
+
+    if (gp.buttons[2]?.pressed || gp.buttons[1]?.pressed) {
+      this.state.bombPressed = true
+    }
+
+    if (gp.buttons[9]?.pressed || gp.buttons[8]?.pressed) {
+      this.onPause?.()
+    }
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
@@ -69,88 +114,60 @@ class InputManager {
       this.state.bombPressed = true
     }
     this.state.keys.add(e.key)
-    this.keysDown[e.key] = true
   }
 
   private onKeyUp = (e: KeyboardEvent): void => {
+    const settings = useGameStore.getState().settings
     if (e.key === ' ' || e.key === 'z' || e.key === 'Z') {
-      if (!this.mouseOnCanvas) this.state.firing = false
-    }
-    if (e.key === 'x' || e.key === 'X') {
-      // handled on read
+      if (!settings.autoFire && !this.mouseOnCanvas) {
+        this.state.firing = false
+      }
     }
     this.state.keys.delete(e.key)
-    this.keysDown[e.key] = false
-  }
-
-  private getTouchPos(e: TouchEvent): { x: number; y: number } | null {
-    const t = this.touchIdentifier !== null
-      ? Array.from(e.changedTouches).find((tch) => tch.identifier === this.touchIdentifier)
-      : e.changedTouches[0]
-    if (!t || !this.canvas) return null
-    const rect = this.canvas.getBoundingClientRect()
-    const x = ((t.clientX - rect.left) / rect.width) * 2 - 1
-    const y = -((t.clientY - rect.top) / rect.height) * 2 + 1
-    return { x, y }
   }
 
   private onTouchStart = (e: TouchEvent): void => {
     e.preventDefault()
     const settings = useGameStore.getState().settings
-    if (this.touchIdentifier === null && e.changedTouches.length > 0) {
-      const t = e.changedTouches[0]
-      this.touchIdentifier = t.identifier
-      this.joystickCenterX = t.clientX
-      this.joystickCenterY = t.clientY
-      this.joystickActive = true
-      this.state.firing = settings.autoFire
-    }
+
+    if (e.touches.length === 0) return
+    this.state.touchActive = true
+    this.state.firing = settings.autoFire
+    this.prevTouchCount = e.touches.length
   }
 
   private onTouchMove = (e: TouchEvent): void => {
     e.preventDefault()
-    if (this.touchIdentifier === null) return
-    const t = Array.from(e.changedTouches).find(
-      (tch) => tch.identifier === this.touchIdentifier
-    )
-    if (!t) return
+    if (!this.canvas) return
 
-    const dx = t.clientX - this.joystickCenterX
-    const dy = t.clientY - this.joystickCenterY
-    const maxDist = 100
-    const mag = Math.min(Math.sqrt(dx * dx + dy * dy) / maxDist, 1)
-    const angle = Math.atan2(dy, dx)
+    const rect = this.canvas.getBoundingClientRect()
 
-    const settings = useGameStore.getState().settings
-    const sens = settings.joystickSensitivity
+    for (let i = 0; i < e.touches.length; i++) {
+      const t = e.touches[i]
 
-    this.state.joystickAngle = angle
-    this.state.joystickMagnitude = Math.min(mag * sens, 1)
+      if (i === 0) {
+        const canvasX = (t.clientX - rect.left)
+        const canvasY = (t.clientY - rect.top)
+        const normX = (canvasX / rect.width) * 2 - 1
+        const normY = -((canvasY / rect.height) * 2 - 1)
 
-    const pos = this.getTouchPos(e)
-    if (pos) {
-      this.state.touchX = pos.x * (this.state.joystickMagnitude)
-      this.state.touchY = pos.y * (this.state.joystickMagnitude)
+        this.state.touchX = normX
+        this.state.touchY = normY
+      }
     }
+
     this.state.touchActive = true
   }
 
   private onTouchEnd = (e: TouchEvent): void => {
     e.preventDefault()
-    const t = Array.from(e.changedTouches).find(
-      (tch) => tch.identifier === this.touchIdentifier
-    )
-    if (!t) return
-
-    this.touchIdentifier = null
-    this.joystickActive = false
-    this.state.touchActive = false
-    this.state.touchX = 0
-    this.state.touchY = 0
-    this.state.joystickAngle = 0
-    this.state.joystickMagnitude = 0
-    const settings = useGameStore.getState().settings
-    this.state.firing = !settings.autoFire && false
+    if (e.touches.length === 0) {
+      this.state.touchActive = false
+      this.state.touchX = 0
+      this.state.touchY = 0
+      this.state.joystickAngle = 0
+      this.state.joystickMagnitude = 0
+    }
   }
 
   private onMouseDown = (e: MouseEvent): void => {
@@ -168,8 +185,10 @@ class InputManager {
 
   private onMouseUp = (): void => {
     this.mouseOnCanvas = false
-    this.state.firing = false
-    this.state.mouseActive = false
+    const settings = useGameStore.getState().settings
+    if (!settings.autoFire) {
+      this.state.firing = false
+    }
   }
 
   private updateMousePos(e: MouseEvent): void {
@@ -177,6 +196,19 @@ class InputManager {
     const rect = this.canvas.getBoundingClientRect()
     this.state.mouseX = e.clientX - rect.left
     this.state.mouseY = e.clientY - rect.top
+  }
+
+  updateAim(playerX: number, playerY: number): void {
+    if (this.state.mouseActive) {
+      this.state.aimX = this.state.mouseX
+      this.state.aimY = this.state.mouseY
+    } else {
+      this.state.aimX = playerX
+      this.state.aimY = playerY - 100
+    }
+    const dx = this.state.aimX - playerX
+    const dy = this.state.aimY - playerY
+    this.state.aimAngle = Math.atan2(dy, dx)
   }
 
   readBomb(): boolean {
@@ -198,6 +230,10 @@ class InputManager {
       this.canvas.removeEventListener('mousedown', this.onMouseDown)
       this.canvas.removeEventListener('mousemove', this.onMouseMove)
       this.canvas.removeEventListener('mouseup', this.onMouseUp)
+    }
+    if (this.gamepadInterval) {
+      clearInterval(this.gamepadInterval)
+      this.gamepadInterval = null
     }
   }
 }

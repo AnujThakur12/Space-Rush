@@ -15,7 +15,7 @@ export type PlaneType = 'default' | 'falcon' | 'eagle' | 'raptor' | 'phantom' | 
 
 export type WeaponType = 'spread' | 'rapid' | 'charged' | 'homing'
 
-export type PowerUpType = 'bomb' | 'homing' | 'slowmo'
+export type PowerUpType = 'bomb' | 'homing' | 'slowmo' | 'weapon' | 'shield' | 'rapid' | 'charged'
 
 export type EnemyType = 'basic' | 'fast' | 'tank' | 'shooter' | 'elite'
 
@@ -215,6 +215,9 @@ export interface InputState {
   mouseX: number
   mouseY: number
   mouseActive: boolean
+  aimX: number
+  aimY: number
+  aimAngle: number
 }
 
 export interface LeaderboardEntry {

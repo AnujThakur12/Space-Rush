@@ -223,28 +223,19 @@ export class GameEngine {
     const kRight = input.keys.has('ArrowRight') || input.keys.has('d') || input.keys.has('D')
     const kUp = input.keys.has('ArrowUp') || input.keys.has('w') || input.keys.has('W')
     const kDown = input.keys.has('ArrowDown') || input.keys.has('s') || input.keys.has('S')
-    const usingKeyboard = kLeft || kRight || kUp || kDown
 
-    if (usingKeyboard) {
-      if (kLeft) moveX = -1
-      if (kRight) moveX = 1
-      if (kUp) moveY = -1
-      if (kDown) moveY = 1
-      p.targetVx = moveX * p.speed
-      p.targetVy = moveY * p.speed
-    } else if (input.mouseActive) {
-      const dx = input.mouseX - p.x
-      const dy = input.mouseY - p.y
-      const followStrength = 8
-      p.targetVx = dx * followStrength
-      p.targetVy = dy * followStrength
-    } else if (input.touchActive) {
-      p.targetVx = input.touchX * p.speed
-      p.targetVy = input.touchY * p.speed
-    } else {
-      p.targetVx = 0
-      p.targetVy = 0
+    if (kLeft) moveX = -1
+    if (kRight) moveX = 1
+    if (kUp) moveY = -1
+    if (kDown) moveY = 1
+
+    if (moveX === 0 && moveY === 0 && input.touchActive) {
+      moveX = input.touchX
+      moveY = input.touchY
     }
+
+    p.targetVx = moveX * p.speed
+    p.targetVy = moveY * p.speed
 
     const friction = 8
     p.vx += (p.targetVx - p.vx) * friction * dt
@@ -256,8 +247,11 @@ export class GameEngine {
     p.x = clamp(p.x, p.width / 2, this.canvasW - p.width / 2)
     p.y = clamp(p.y, p.height / 2, this.canvasH - p.height / 2)
 
+    inputManager.updateAim(p.x, p.y)
+
     p.fireTimer -= dt
-    if (input.firing || input.keys.has(' ')) {
+    const autoFire = useGameStore.getState().settings.autoFire
+    if (input.firing || input.keys.has(' ') || autoFire) {
       if (p.fireTimer <= 0) {
         this.firePlayerWeapon()
         p.fireTimer = p.fireRate
@@ -291,19 +285,23 @@ export class GameEngine {
     const bx = p.x
     const by = p.y - p.height / 2 - 10
 
-    const aimAngle = this.getAimAssistAngle()
+    const aimAngle = inputManager.state.aimAngle
+    const aimAssist = useGameStore.getState().settings.aimAssist
+    const assistOffset = aimAssist ? this.getAimAssistAngle() : 0
 
-    const volley = 5
     const bulletSpeed = 650
     const damage = 10 + (p.weaponLevel - 1) * 2
 
-    for (let i = 0; i < volley; i++) {
-      let angle = -Math.PI / 2
-      angle += (i - 2) * 0.08 + aimAngle * 0.3
+    const bulletCount = this.getWeaponBulletCount()
+    const spreadAngle = this.getWeaponSpread()
+
+    for (let i = 0; i < bulletCount; i++) {
+      const spread = bulletCount > 1 ? (i - (bulletCount - 1) / 2) * spreadAngle : 0
+      const angle = aimAngle + spread + assistOffset * 0.3
 
       const b: Bullet = {
         x: bx, y: by, z: 0,
-        width: 8, height: 20,
+        width: 6, height: 16,
         speed: bulletSpeed,
         vx: Math.cos(angle) * bulletSpeed,
         vy: Math.sin(angle) * bulletSpeed,
@@ -311,7 +309,7 @@ export class GameEngine {
         isPlayer: true,
         alive: true,
         timer: 2,
-        color: '#00ccff',
+        color: this.getWeaponColor(),
       }
       this.bullets.push(b)
     }
@@ -320,6 +318,38 @@ export class GameEngine {
     this.muzzleX = bx
     this.muzzleY = by
     audioManager.playSfxSynth('shoot')
+  }
+
+  private getWeaponBulletCount(): number {
+    const wl = this.player.weaponLevel
+    switch (this.player.weaponType) {
+      case 'spread': return wl >= 4 ? 5 : wl >= 3 ? 3 : wl >= 2 ? 2 : 1
+      case 'rapid': return 1
+      case 'charged': return 1
+      case 'homing': return 3
+      default: return 1
+    }
+  }
+
+  private getWeaponSpread(): number {
+    const wl = this.player.weaponLevel
+    switch (this.player.weaponType) {
+      case 'spread': return wl >= 4 ? 0.08 : wl >= 3 ? 0.06 : 0.04
+      case 'rapid': return 0
+      case 'charged': return 0
+      case 'homing': return 0.06
+      default: return 0
+    }
+  }
+
+  private getWeaponColor(): string {
+    switch (this.player.weaponType) {
+      case 'spread': return '#00ccff'
+      case 'rapid': return '#ffcc00'
+      case 'charged': return '#ff66ff'
+      case 'homing': return '#00ff88'
+      default: return '#00ccff'
+    }
   }
 
   private getAimAssistAngle(): number {
@@ -444,16 +474,22 @@ export class GameEngine {
       e.x += e.vx * dt
 
       if (e.type === 'fast') {
-        e.vx += Math.sin(this.gameTime * 3 + e.y * 0.01) * 80 * dt
+        e.vx += Math.sin(this.gameTime * 3 + e.y * 0.01) * (80 + this.currentLevel * 5) * dt
         e.vx *= 0.99
+        if (e.y < this.canvasH * 0.3) e.vy += 20 * dt
+        else if (e.y > this.canvasH * 0.7) e.vy -= 20 * dt
       } else if (e.type === 'tank') {
-        e.vx = Math.sin(this.gameTime * 0.5 + e.x * 0.01) * 50
+        e.vx = Math.sin(this.gameTime * 0.5 + e.x * 0.01) * (50 + this.currentLevel * 3)
+        if (e.y < this.canvasH * 0.15) e.vy += 30 * dt
       } else if (e.type === 'shooter') {
-        if (e.y > this.canvasH * 0.25 && e.y < this.canvasH * 0.45) {
+        if (e.y > this.canvasH * 0.2 && e.y < this.canvasH * 0.4) {
           e.vy *= 0.97
         }
+        if (e.y > this.canvasH * 0.5) e.vy -= 50 * dt
       } else if (e.type === 'elite') {
-        e.vx += Math.sin(this.gameTime * 2 + e.y * 0.01) * 50 * dt
+        e.vx += Math.sin(this.gameTime * 2 + e.y * 0.01) * (50 + this.currentLevel * 4) * dt
+        if (e.y > this.canvasH * 0.45) e.vy -= 30 * dt
+        if (e.y < this.canvasH * 0.15) e.vy += 20 * dt
       }
 
       if (e.y > this.canvasH + 80) {
@@ -479,21 +515,26 @@ export class GameEngine {
   }
 
   private spawnEnemy(): void {
-    const types: EnemyType[] = ['basic', 'basic', 'fast', 'tank', 'shooter']
-    if (this.currentLevel >= 3) types.push('shooter', 'shooter')
-    if (this.currentLevel >= 5) types.push('elite')
-    if (this.currentLevel >= 8) types.push('elite', 'elite', 'fast', 'fast')
-    if (this.currentLevel >= 10) types.push('elite', 'shooter', 'shooter', 'tank')
+    const lvl = this.currentLevel
+    const types: EnemyType[] = ['basic', 'basic']
+    if (lvl >= 2) types.push('fast')
+    if (lvl >= 3) types.push('tank', 'shooter')
+    if (lvl >= 4) types.push('shooter', 'shooter')
+    if (lvl >= 6) types.push('elite')
+    if (lvl >= 8) types.push('elite', 'elite', 'fast', 'fast')
+    if (lvl >= 10) types.push('elite', 'shooter', 'shooter', 'tank')
 
-    const fromSide = Math.random() < 0.15
+    const fromSide = Math.random() < 0.15 && lvl >= 3
     const type = types[Math.floor(Math.random() * types.length)]
     const def = ENEMY_TYPES[type]
-    const lvlMult = 1 + (this.currentLevel - 1) * 0.12
+    const lvlMult = 1 + (lvl - 1) * 0.1
 
     const x = fromSide
       ? (Math.random() < 0.5 ? -40 : this.canvasW + 40)
       : rand(60, this.canvasW - 60)
-    const y = fromSide ? rand(50, this.canvasH * 0.4) : -40
+    const y = fromSide ? rand(50, this.canvasH * 0.35) : -40
+
+    const speed = def.speed + rand(-15, 15)
 
     const e: Enemy = {
       x,
@@ -503,13 +544,13 @@ export class GameEngine {
       height: def.size,
       hp: Math.round(def.hp * lvlMult),
       maxHp: Math.round(def.hp * lvlMult),
-      speed: def.speed + rand(-20, 20),
+      speed,
       type,
       alive: true,
       fireTimer: rand(0, def.fireRate),
       fireRate: def.fireRate,
-      vx: fromSide ? (x < 0 ? rand(100, 180) : rand(-180, -100)) : rand(-30, 30),
-      vy: fromSide ? rand(20, 60) : (def.speed + rand(-20, 20)) * (0.6 + Math.random() * 0.6),
+      vx: fromSide ? (x < 0 ? rand(80, 150) : rand(-150, -80)) : rand(-20, 20),
+      vy: fromSide ? rand(15, 50) : speed * (0.5 + Math.random() * 0.5),
       shootAngle: Math.PI / 2,
       flashTimer: 0,
       score: def.score,
@@ -560,14 +601,15 @@ export class GameEngine {
 
       const baseAngle = Math.atan2(dy, dx)
       const angle = baseAngle + spread
-      const speed = 220 + e.type === 'elite' ? 50 : 0
+      const bonusSpeed = e.type === 'elite' ? 50 : 0
+      const bulletSpeed = 220 + bonusSpeed
 
       const b: Bullet = {
         x: e.x, y: e.y + e.height / 2, z: 0,
         width: 8, height: 16,
-        speed,
-        vx: Math.cos(angle) * (200 + speed),
-        vy: Math.sin(angle) * (200 + speed),
+        speed: bulletSpeed,
+        vx: Math.cos(angle) * bulletSpeed,
+        vy: Math.sin(angle) * bulletSpeed,
         damage: 1,
         isPlayer: false,
         alive: true,
@@ -1099,16 +1141,24 @@ export class GameEngine {
   }
 
   private maybeDropPowerup(x: number, y: number): void {
-    if (Math.random() < 0.1) {
-      const types: PowerUpType[] = ['bomb', 'homing', 'slowmo']
-      const type = types[Math.floor(Math.random() * types.length)]
+    if (Math.random() < 0.12) {
+      const weights = [40, 20, 15, 10, 10, 5]
+      const total = weights.reduce((a, b) => a + b)
+      let r = Math.random() * total
+      let type: PowerUpType = 'bomb'
+      for (let i = 0; i < weights.length; i++) {
+        r -= weights[i]
+        if (r <= 0) {
+          type = (['weapon', 'shield', 'bomb', 'slowmo', 'homing', 'rapid'] as PowerUpType[])[i]
+          break
+        }
+      }
       this.spawnPowerupAt(x, y, type)
     }
   }
 
   private spawnPowerupAt(x: number, y: number, type?: PowerUpType): void {
-    const types: PowerUpType[] = ['bomb', 'homing', 'slowmo']
-    const t = type || types[Math.floor(Math.random() * types.length)]
+    const t = type || 'bomb'
     this.powerups.push({
       x, y, z: 0,
       width: 30, height: 30,
@@ -1123,14 +1173,34 @@ export class GameEngine {
   private applyPowerup(pu: PowerUp): void {
     const p = this.player
     switch (pu.type) {
+      case 'weapon':
+        if (p.weaponLevel < 5) {
+          p.weaponLevel++
+          const names = ['', 'DUAL SHOT', 'TRIPLE SHOT', 'SPREAD SHOT', 'WIDE SPREAD']
+          this.addNotification(`+${names[p.weaponLevel] || 'MAX'}`, '#00ccff')
+        } else {
+          p.weaponLevel = Math.min(p.weaponLevel + 1, 8)
+          this.addNotification('+WEAPON DMG', '#00ccff')
+        }
+        break
+      case 'shield':
+        p.shield = Math.min(p.shield + 1, p.maxShield)
+        this.addNotification('+SHIELD', '#00e5ff')
+        break
       case 'bomb':
         p.bombs = Math.min(p.bombs + 1, 5)
         this.addNotification('+BOMB', '#ff6600')
         break
       case 'homing':
         p.weaponType = 'homing'
-        setTimeout(() => { p.weaponType = 'spread' }, 6000)
+        setTimeout(() => { if (p.weaponType === 'homing') p.weaponType = 'spread' }, 8000)
         this.addNotification('HOMING MISSILES', '#00ffcc')
+        break
+      case 'rapid':
+        p.weaponType = 'rapid'
+        p.fireRate = 0.07
+        setTimeout(() => { if (p.weaponType === 'rapid') { p.weaponType = 'spread'; p.fireRate = 0.15 } }, 8000)
+        this.addNotification('RAPID FIRE', '#ffcc00')
         break
       case 'slowmo':
         this.slowMotionTimer = 4

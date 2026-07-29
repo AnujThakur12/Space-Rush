@@ -12,6 +12,7 @@ import type {
   InputState,
   UserProfile,
   PlaneType,
+  WeaponType,
 } from '../types/game'
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -59,6 +60,8 @@ export interface GameStore {
   playerMaxHp: number
   playerShield: number
   playerMaxShield: number
+  weaponLevel: number
+  weaponType: WeaponType
   combo: number
   comboMultiplier: number
   bossHp: number
@@ -102,6 +105,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playerMaxHp: 5,
   playerShield: 0,
   playerMaxShield: 3,
+  weaponLevel: 1,
+  weaponType: 'spread',
   combo: 0,
   comboMultiplier: 1,
   bossHp: 0,
@@ -123,6 +128,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerMaxHp: p.maxHp,
       playerShield: p.shield,
       playerMaxShield: p.maxShield,
+      weaponLevel: p.weaponLevel,
+      weaponType: p.weaponType,
     }),
 
   updateBossHUD: (b) =>
@@ -179,6 +186,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerMaxHp: 5,
       playerShield: 0,
       playerMaxShield: 3,
+      weaponLevel: 1,
+      weaponType: 'spread',
       combo: 0,
       comboMultiplier: 1,
       bossHp: 0,
