@@ -1,4 +1,5 @@
 import { useGameStore } from '../store/gameStore'
+import type { TouchControlMode } from '../types/game'
 
 export function SettingsScreen() {
   const settings = useGameStore((s) => s.settings)
@@ -26,20 +27,14 @@ export function SettingsScreen() {
         value={settings.autoFire}
         onChange={(v) => setSettings({ autoFire: v })}
       />
-      <SettingSlider
-        label="Joystick Size"
-        value={settings.joystickSize}
-        onChange={(v) => setSettings({ joystickSize: v })}
-      />
-      <SettingSlider
-        label="Joystick Opacity"
-        value={settings.joystickOpacity}
-        onChange={(v) => setSettings({ joystickOpacity: v })}
-      />
-      <SettingSlider
-        label="Joystick Sensitivity"
-        value={settings.joystickSensitivity}
-        onChange={(v) => setSettings({ joystickSensitivity: v })}
+      <SettingSelect
+        label="Touch Control"
+        value={settings.touchControlMode}
+        options={[
+          { value: 'drag', label: 'Drag Ship' },
+          { value: 'anywhere', label: 'Touch Anywhere' },
+        ]}
+        onChange={(v) => setSettings({ touchControlMode: v as TouchControlMode })}
       />
       <SettingToggle
         label="Vibration"
@@ -93,6 +88,34 @@ function SettingToggle({ label, value, onChange }: { label: string; value: boole
       >
         {value ? 'ON' : 'OFF'}
       </button>
+    </div>
+  )
+}
+
+function SettingSelect({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+  return (
+    <div style={settingRowStyle}>
+      <span style={{ color: '#ccc', fontSize: 13, minWidth: 140 }}>{label}</span>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {options.map((o) => (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              padding: '4px 12px',
+              fontSize: 11,
+              fontWeight: 600,
+              color: value === o.value ? '#fff' : 'rgba(255,255,255,0.4)',
+              background: value === o.value ? 'rgba(68,136,255,0.3)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${value === o.value ? 'rgba(68,136,255,0.5)' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: 6,
+              cursor: 'pointer',
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

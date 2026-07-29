@@ -42,7 +42,7 @@ export function GameScreen({ engine, onRestart, onMenu, onTogglePause }: GameScr
       />
       <HUD />
       <Notifications />
-      <TouchControls />
+      <TouchControls engine={engine} />
       {/* Pause button: top-center, clear of corner panels */}
       <button
         onClick={onTogglePause}

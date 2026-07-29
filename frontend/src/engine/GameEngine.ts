@@ -230,13 +230,37 @@ export class GameEngine {
     if (kUp) moveY = -1
     if (kDown) moveY = 1
 
-    if (moveX === 0 && moveY === 0 && input.touchActive) {
+    const hasKBInput = moveX !== 0 || moveY !== 0
+
+    if (!hasKBInput && input.touchTargetX !== null && input.touchTargetY !== null) {
+      const dx = input.touchTargetX - p.x
+      const dy = input.touchTargetY - p.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const followSpeed = 5
+      if (dist > 1) {
+        p.targetVx = dx * followSpeed
+        p.targetVy = dy * followSpeed
+        const maxV = p.speed * 1.2
+        const v = Math.sqrt(p.targetVx * p.targetVx + p.targetVy * p.targetVy)
+        if (v > maxV) {
+          p.targetVx = (p.targetVx / v) * maxV
+          p.targetVy = (p.targetVy / v) * maxV
+        }
+      } else {
+        p.targetVx = 0
+        p.targetVy = 0
+        p.vx = 0
+        p.vy = 0
+      }
+    } else if (!hasKBInput && input.touchActive) {
       moveX = input.touchX
       moveY = input.touchY
+      p.targetVx = moveX * p.speed
+      p.targetVy = moveY * p.speed
+    } else {
+      p.targetVx = moveX * p.speed
+      p.targetVy = moveY * p.speed
     }
-
-    p.targetVx = moveX * p.speed
-    p.targetVy = moveY * p.speed
 
     const friction = 8
     p.vx += (p.targetVx - p.vx) * friction * dt

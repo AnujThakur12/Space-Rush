@@ -6,6 +6,8 @@ class InputManager {
     touchX: 0,
     touchY: 0,
     touchActive: false,
+    touchTargetX: null,
+    touchTargetY: null,
     firing: false,
     bombPressed: false,
     pausePressed: false,

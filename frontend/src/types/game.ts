@@ -19,6 +19,8 @@ export type PowerUpType = 'bomb' | 'homing' | 'slowmo' | 'weapon' | 'shield' | '
 
 export type EnemyType = 'basic' | 'fast' | 'tank' | 'shooter' | 'elite'
 
+export type TouchControlMode = 'drag' | 'anywhere'
+
 export interface Vec2 {
   x: number
   y: number
@@ -172,12 +174,10 @@ export interface Star {
 export interface GameSettings {
   musicVolume: number
   sfxVolume: number
-  joystickSize: number
-  joystickOpacity: number
-  joystickSensitivity: number
   autoFire: boolean
   vibration: boolean
   quality: 'auto' | 'high' | 'low'
+  touchControlMode: TouchControlMode
 }
 
 export interface Achievement {
@@ -205,6 +205,8 @@ export interface InputState {
   touchX: number
   touchY: number
   touchActive: boolean
+  touchTargetX: number | null
+  touchTargetY: number | null
   firing: boolean
   bombPressed: boolean
   pausePressed: boolean

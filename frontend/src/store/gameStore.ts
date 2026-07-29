@@ -18,12 +18,10 @@ import type {
 const DEFAULT_SETTINGS: GameSettings = {
   musicVolume: 0.5,
   sfxVolume: 0.7,
-  joystickSize: 0.5,
-  joystickOpacity: 0.5,
-  joystickSensitivity: 1,
   autoFire: true,
   vibration: true,
   quality: 'auto',
+  touchControlMode: 'drag',
 }
 
 const DEFAULT_STATS: GameStats = {
