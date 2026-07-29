@@ -154,7 +154,7 @@ export interface Particle {
   size: number
   color: string
   alpha: number
-  type: 'spark' | 'explosion' | 'trail' | 'text'
+  type: 'spark' | 'explosion' | 'trail' | 'text' | 'smoke'
   text?: string
   textSize?: number
   gravity?: number

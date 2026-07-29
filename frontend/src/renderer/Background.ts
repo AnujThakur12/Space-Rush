@@ -6,6 +6,7 @@ interface Star {
   brightness: number
   layer: number
   phase: number
+  tint: string
 }
 
 interface Nebula {
@@ -14,6 +15,8 @@ interface Nebula {
   r: number
   color: string
   opacity: number
+  dx: number
+  dy: number
 }
 
 interface Planet {
@@ -28,6 +31,8 @@ interface Planet {
   moonAngle: number
   rings: boolean
   craters: { x: number; y: number; r: number }[]
+  rotation: number
+  cloudColor: string
 }
 
 interface Dust {
@@ -38,15 +43,36 @@ interface Dust {
   alpha: number
 }
 
-const STAR_COUNTS = [100, 70, 40, 20]
-const STAR_SPEEDS = [0.15, 0.4, 0.9, 1.8]
-const STAR_SIZES = [0.3, 0.6, 1.2, 2.0]
+interface Station {
+  x: number
+  y: number
+  size: number
+  speed: number
+  rotation: number
+}
+
+interface Asteroid {
+  x: number
+  y: number
+  size: number
+  speed: number
+  rot: number
+  rotSpeed: number
+  shape: number[]
+}
+
+const STAR_COUNTS = [120, 80, 50, 25]
+const STAR_SPEEDS = [0.12, 0.35, 0.8, 1.6]
+const STAR_SIZES = [0.3, 0.6, 1.2, 2.2]
 const STAR_BRIGHTNESS = [0.2, 0.4, 0.7, 1.0]
+const STAR_TINTS = ['#ffffff', '#ffffff', '#aaccff', '#ffddcc', '#ccddff', '#ffeedd']
 
 let stars: Star[] = []
 let nebulae: Nebula[] = []
 let planets: Planet[] = []
 let dustParticles: Dust[] = []
+let asteroids: Asteroid[] = []
+let stations: Station[] = []
 let initialized = false
 
 function init(cw: number, ch: number) {
@@ -65,46 +91,91 @@ function init(cw: number, ch: number) {
         brightness: STAR_BRIGHTNESS[layer] * (0.3 + Math.random() * 0.7),
         layer,
         phase: Math.random() * Math.PI * 2,
+        tint: STAR_TINTS[Math.floor(Math.random() * STAR_TINTS.length)],
       })
     }
   }
 
   nebulae = [
-    { x: cw * 0.15, y: ch * 0.25, r: 180, color: '68, 34, 170', opacity: 0.04 },
-    { x: cw * 0.8, y: ch * 0.65, r: 200, color: '34, 68, 170', opacity: 0.035 },
-    { x: cw * 0.5, y: ch * 0.85, r: 140, color: '136, 34, 102', opacity: 0.03 },
-    { x: cw * 0.1, y: ch * 0.7, r: 120, color: '34, 102, 136', opacity: 0.025 },
-    { x: cw * 0.7, y: ch * 0.15, r: 150, color: '102, 68, 204', opacity: 0.035 },
+    { x: cw * 0.15, y: ch * 0.25, r: 220, color: '68, 34, 170', opacity: 0.05, dx: -1, dy: 0.3 },
+    { x: cw * 0.82, y: ch * 0.7, r: 240, color: '34, 68, 170', opacity: 0.04, dx: 0.5, dy: -0.2 },
+    { x: cw * 0.5, y: ch * 0.88, r: 180, color: '136, 34, 102', opacity: 0.035, dx: 0.3, dy: -0.5 },
+    { x: cw * 0.08, y: ch * 0.75, r: 150, color: '34, 102, 136', opacity: 0.03, dx: 1, dy: 0.1 },
+    { x: cw * 0.65, y: ch * 0.12, r: 190, color: '102, 68, 204', opacity: 0.04, dx: -0.5, dy: 0.4 },
+    { x: cw * 0.4, y: ch * 0.45, r: 160, color: '170, 50, 80', opacity: 0.025, dx: 0.2, dy: 0.6 },
   ]
 
   planets = [
     {
-      x: cw * 0.85, y: ch * 0.2, r: 35,
-      color: '#664433', atmosphere: 'rgba(180, 120, 80, 0.08)',
+      x: cw * 0.85, y: ch * 0.18, r: 40,
+      color: '#774433', atmosphere: 'rgba(200, 120, 70, 0.1)',
       moonX: 0, moonY: 0, moonR: 0, moonAngle: 0,
       rings: true,
       craters: [
-        { x: -8, y: -5, r: 6 }, { x: 10, y: 3, r: 4 },
-        { x: -3, y: 10, r: 3 }, { x: 12, y: -8, r: 5 },
+        { x: -10, y: -6, r: 7 }, { x: 12, y: 4, r: 5 },
+        { x: -4, y: 12, r: 4 }, { x: 14, y: -10, r: 6 },
+        { x: -8, y: 8, r: 3 },
       ],
+      rotation: 0,
+      cloudColor: 'rgba(200, 150, 100, 0.06)',
     },
     {
-      x: cw * 0.12, y: ch * 0.4, r: 22,
-      color: '#5588aa', atmosphere: 'rgba(80, 140, 180, 0.1)',
-      moonX: cw * 0.12 + 40, moonY: ch * 0.4 - 12, moonR: 5, moonAngle: 0,
+      x: cw * 0.1, y: ch * 0.38, r: 25,
+      color: '#4488aa', atmosphere: 'rgba(80, 160, 200, 0.12)',
+      moonX: cw * 0.1 + 45, moonY: ch * 0.38 - 15, moonR: 6, moonAngle: 0,
       rings: false,
       craters: [],
+      rotation: 0,
+      cloudColor: 'rgba(150, 200, 240, 0.05)',
+    },
+    {
+      x: cw * 0.5, y: ch * 0.06, r: 15,
+      color: '#886644', atmosphere: 'rgba(180, 140, 80, 0.08)',
+      moonX: 0, moonY: 0, moonR: 0, moonAngle: 0,
+      rings: false,
+      craters: [{ x: -3, y: 2, r: 3 }, { x: 4, y: -2, r: 2 }],
+      rotation: 0,
+      cloudColor: 'rgba(200, 160, 100, 0.04)',
     },
   ]
 
   dustParticles = []
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 80; i++) {
     dustParticles.push({
       x: Math.random() * cw,
       y: Math.random() * ch,
-      size: Math.random() * 1.5 + 0.3,
-      speed: Math.random() * 15 + 5,
-      alpha: Math.random() * 0.3 + 0.05,
+      size: Math.random() * 1.8 + 0.3,
+      speed: Math.random() * 18 + 3,
+      alpha: Math.random() * 0.25 + 0.03,
+    })
+  }
+
+  asteroids = []
+  for (let i = 0; i < 12; i++) {
+    const sides = 5 + Math.floor(Math.random() * 4)
+    const shape: number[] = []
+    for (let j = 0; j < sides; j++) {
+      shape.push(0.7 + Math.random() * 0.3)
+    }
+    asteroids.push({
+      x: Math.random() * cw * 1.2 - cw * 0.1,
+      y: -Math.random() * ch * 0.5,
+      size: 4 + Math.random() * 12,
+      speed: 20 + Math.random() * 30,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.5,
+      shape,
+    })
+  }
+
+  stations = []
+  for (let i = 0; i < 3; i++) {
+    stations.push({
+      x: Math.random() * cw,
+      y: -Math.random() * ch * 0.3,
+      size: 8 + Math.random() * 10,
+      speed: 10 + Math.random() * 15,
+      rotation: Math.random() * Math.PI * 2,
     })
   }
 }
@@ -115,18 +186,27 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
   init(cw, ch)
   time += dt
 
-  const grd = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, Math.max(cw, ch) * 0.8)
-  grd.addColorStop(0, '#070712')
-  grd.addColorStop(0.4, '#040410')
-  grd.addColorStop(0.7, '#020210')
+  const grd = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, Math.max(cw, ch) * 0.9)
+  grd.addColorStop(0, '#08081a')
+  grd.addColorStop(0.3, '#050512')
+  grd.addColorStop(0.6, '#03030e')
   grd.addColorStop(1, '#010008')
   ctx.fillStyle = grd
   ctx.fillRect(0, 0, cw, ch)
 
   for (const n of nebulae) {
+    n.x += n.dx * dt * 2
+    n.y += n.dy * dt * 2
+    if (n.x < -n.r) n.x = cw + n.r
+    if (n.x > cw + n.r) n.x = -n.r
+    if (n.y < -n.r) n.y = ch + n.r
+    if (n.y > ch + n.r) n.y = -n.r
+
+    const pulseOpacity = n.opacity + Math.sin(time * 0.1 + nebulae.indexOf(n)) * 0.008
     const grd2 = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r)
-    grd2.addColorStop(0, `rgba(${n.color}, ${n.opacity + 0.02})`)
-    grd2.addColorStop(0.4, `rgba(${n.color}, ${n.opacity})`)
+    grd2.addColorStop(0, `rgba(${n.color}, ${pulseOpacity + 0.02})`)
+    grd2.addColorStop(0.4, `rgba(${n.color}, ${pulseOpacity})`)
+    grd2.addColorStop(0.7, `rgba(${n.color}, ${pulseOpacity * 0.5})`)
     grd2.addColorStop(1, `rgba(${n.color}, 0)`)
     ctx.fillStyle = grd2
     ctx.beginPath()
@@ -134,16 +214,55 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
     ctx.fill()
   }
 
+  for (const a of asteroids) {
+    a.y += a.speed * dt
+    a.rot += a.rotSpeed * dt * 60
+    if (a.y > ch + a.size * 2) {
+      a.y = -a.size * 2
+      a.x = Math.random() * cw
+      a.speed = 20 + Math.random() * 30
+    }
+
+    ctx.save()
+    ctx.translate(a.x, a.y)
+    ctx.rotate(a.rot)
+
+    ctx.fillStyle = 'rgba(80, 70, 60, 0.25)'
+    ctx.strokeStyle = 'rgba(120, 100, 80, 0.15)'
+    ctx.lineWidth = 0.5
+
+    ctx.beginPath()
+    const sides = a.shape.length
+    for (let i = 0; i < sides; i++) {
+      const angle = (i / sides) * Math.PI * 2 - Math.PI / 2
+      const r = a.size * a.shape[i]
+      if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r)
+      else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r)
+    }
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+  }
+
   for (const p of planets) {
+    p.rotation += dt * 0.15
+
     ctx.save()
 
-    ctx.shadowColor = p.atmosphere.replace('0.08', '0.15').replace('0.1', '0.2')
-    ctx.shadowBlur = 30
+    ctx.shadowColor = p.atmosphere.replace('0.1', '0.2').replace('0.12', '0.25').replace('0.08', '0.15')
+    ctx.shadowBlur = 40
 
-    const grd3 = ctx.createRadialGradient(p.x - p.r * 0.3, p.y - p.r * 0.3, 0, p.x, p.y, p.r)
-    grd3.addColorStop(0, lighten(p.color, 30))
-    grd3.addColorStop(0.7, p.color)
-    grd3.addColorStop(1, darken(p.color, 40))
+    const grd3 = ctx.createRadialGradient(
+      p.x - p.r * 0.3 * Math.cos(p.rotation * 0.5),
+      p.y - p.r * 0.3 * Math.sin(p.rotation * 0.5),
+      0,
+      p.x, p.y, p.r
+    )
+    grd3.addColorStop(0, lighten(p.color, 40))
+    grd3.addColorStop(0.5, lighten(p.color, 10))
+    grd3.addColorStop(0.8, p.color)
+    grd3.addColorStop(1, darken(p.color, 50))
     ctx.fillStyle = grd3
     ctx.beginPath()
     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
@@ -151,35 +270,89 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
 
     ctx.shadowBlur = 0
     for (const c of p.craters) {
-      ctx.fillStyle = darken(p.color, 20)
+      const cx = p.x + c.x + Math.sin(p.rotation * 0.3 + c.x * 0.1) * 1
+      const cy = p.y + c.y + Math.cos(p.rotation * 0.3 + c.y * 0.1) * 1
+      ctx.fillStyle = darken(p.color, 25)
       ctx.beginPath()
-      ctx.arc(p.x + c.x, p.y + c.y, c.r, 0, Math.PI * 2)
+      ctx.arc(cx, cy, c.r, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = darken(p.color, 10)
+      ctx.beginPath()
+      ctx.arc(cx + 1, cy + 1, c.r * 0.5, 0, Math.PI * 2)
       ctx.fill()
     }
 
+    ctx.fillStyle = p.cloudColor
+    ctx.beginPath()
+    ctx.ellipse(p.x + Math.sin(p.rotation) * p.r * 0.3, p.y - p.r * 0.2, p.r * 0.5, p.r * 0.15, p.rotation * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.ellipse(p.x + Math.sin(p.rotation + 2) * p.r * 0.25, p.y + p.r * 0.15, p.r * 0.35, p.r * 0.1, p.rotation * 0.3, 0, Math.PI * 2)
+    ctx.fill()
+
     if (p.rings) {
-      ctx.strokeStyle = 'rgba(180, 140, 100, 0.2)'
+      ctx.strokeStyle = 'rgba(200, 160, 120, 0.2)'
       ctx.lineWidth = 3
       ctx.beginPath()
-      ctx.ellipse(p.x, p.y, p.r * 1.8, p.r * 0.3, 0.3, 0, Math.PI * 2)
+      ctx.ellipse(p.x, p.y, p.r * 1.9, p.r * 0.28, 0.3, 0, Math.PI * 2)
       ctx.stroke()
-      ctx.strokeStyle = 'rgba(180, 140, 100, 0.1)'
+      ctx.strokeStyle = 'rgba(200, 160, 120, 0.1)'
       ctx.lineWidth = 2
       ctx.beginPath()
-      ctx.ellipse(p.x, p.y, p.r * 2.1, p.r * 0.35, 0.3, 0, Math.PI * 2)
+      ctx.ellipse(p.x, p.y, p.r * 2.2, p.r * 0.32, 0.3, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(200, 160, 120, 0.06)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.ellipse(p.x, p.y, p.r * 2.5, p.r * 0.36, 0.3, 0, Math.PI * 2)
       ctx.stroke()
     }
 
+    ctx.shadowBlur = 0
     ctx.fillStyle = p.atmosphere
     ctx.beginPath()
-    ctx.arc(p.x, p.y, p.r * 1.1, 0, Math.PI * 2)
+    ctx.arc(p.x, p.y, p.r * 1.15, 0, Math.PI * 2)
     ctx.fill()
 
-    ctx.shadowBlur = 0
-    ctx.fillStyle = 'rgba(255,255,255,0.01)'
+    ctx.fillStyle = 'rgba(255,255,255,0.015)'
     ctx.beginPath()
-    ctx.arc(p.x - p.r * 0.4, p.y - p.r * 0.4, p.r * 0.15, 0, Math.PI * 2)
+    ctx.arc(p.x - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.12, 0, Math.PI * 2)
     ctx.fill()
+
+    ctx.restore()
+  }
+
+  for (const s of stations) {
+    s.y += s.speed * dt
+    s.rotation += dt * 0.5
+    if (s.y > ch + s.size * 2) {
+      s.y = -s.size * 2
+      s.x = Math.random() * cw
+    }
+
+    ctx.save()
+    ctx.translate(s.x, s.y)
+    ctx.rotate(s.rotation)
+
+    ctx.fillStyle = 'rgba(60, 80, 120, 0.15)'
+    ctx.strokeStyle = 'rgba(80, 120, 180, 0.1)'
+    ctx.lineWidth = 0.5
+
+    ctx.beginPath()
+    ctx.arc(0, 0, s.size, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.fillStyle = 'rgba(80, 140, 200, 0.08)'
+    ctx.beginPath()
+    ctx.arc(0, 0, s.size * 0.4, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.strokeStyle = 'rgba(100, 160, 220, 0.06)'
+    ctx.lineWidth = 0.5
+    ctx.beginPath()
+    ctx.arc(0, 0, s.size * 1.3, 0, Math.PI * 2)
+    ctx.stroke()
 
     ctx.restore()
   }
@@ -191,21 +364,28 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
       s.x = Math.random() * cw
     }
 
-    const twinkle = 0.5 + Math.sin(time * s.speed * 0.5 + s.phase) * 0.5 * 0.4
-    const alpha = s.brightness * (0.6 + twinkle * 0.4)
-    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`
+    const twinkle = 0.5 + Math.sin(time * s.speed * 0.4 + s.phase) * 0.5 * 0.35
+    const alpha = s.brightness * (0.65 + twinkle * 0.35)
+
+    if (s.layer >= 2 && s.size > 1.2) {
+      const crossSize = s.size * 2.5
+      ctx.save()
+      ctx.globalAlpha = alpha * 0.2
+      ctx.fillStyle = s.tint
+      ctx.shadowBlur = 6
+      ctx.shadowColor = s.tint
+      ctx.fillRect(s.x - crossSize * 0.03, s.y - crossSize, crossSize * 0.06, crossSize * 2)
+      ctx.fillRect(s.x - crossSize, s.y - crossSize * 0.03, crossSize * 2, crossSize * 0.06)
+      ctx.restore()
+    }
+
+    ctx.fillStyle = s.tint
+    ctx.globalAlpha = alpha
+    ctx.shadowBlur = 0
     ctx.beginPath()
     ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
     ctx.fill()
-
-    if (s.layer >= 2 && s.size > 1) {
-      ctx.fillStyle = `rgba(200, 220, 255, ${alpha * 0.3})`
-      ctx.shadowBlur = 4
-      ctx.shadowColor = '#aaccff'
-      ctx.beginPath()
-      ctx.arc(s.x, s.y, s.size * 0.5, 0, Math.PI * 2)
-      ctx.fill()
-    }
+    ctx.globalAlpha = 1
   }
 
   ctx.shadowBlur = 0
@@ -215,7 +395,7 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
       d.y = -2
       d.x = Math.random() * cw
     }
-    ctx.fillStyle = `rgba(150, 180, 255, ${d.alpha})`
+    ctx.fillStyle = `rgba(140, 170, 255, ${d.alpha})`
     ctx.beginPath()
     ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2)
     ctx.fill()
@@ -228,6 +408,8 @@ export function resetBackground() {
   nebulae = []
   planets = []
   dustParticles = []
+  asteroids = []
+  stations = []
 }
 
 function lighten(hex: string, amt: number): string {

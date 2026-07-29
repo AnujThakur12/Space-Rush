@@ -2,9 +2,9 @@ import { useRef, useEffect, useCallback } from 'react'
 import type { GameEngine } from '../engine/GameEngine'
 import { useGameStore } from '../store/gameStore'
 import { drawBackground } from './Background'
-import { drawPlayer, drawEnemy, drawBoss, drawBullet } from './Sprites'
+import { drawPlayer, drawEnemy, drawBoss, drawBullet, drawPowerupIcon } from './Sprites'
 import { drawParticles } from './Particles'
-import { drawFlash, drawEngineTrail, drawMuzzleFlash } from './effects'
+import { drawFlash, drawEngineTrail, drawMuzzleFlash, applyBloom, initBloomCanvas } from './effects'
 
 interface GameCanvasProps {
   engine: GameEngine
@@ -15,6 +15,7 @@ export function GameCanvas({ engine }: GameCanvasProps) {
   const rafRef = useRef(0)
   const lastTimeRef = useRef(0)
   const screenRef = useRef(engine)
+  const quality = useGameStore((s) => s.settings.quality)
 
   screenRef.current = engine
 
@@ -34,6 +35,8 @@ export function GameCanvas({ engine }: GameCanvasProps) {
 
     engine.canvasW = cw
     engine.canvasH = ch
+
+    const useBloom = quality !== 'low'
 
     ctx.save()
 
@@ -61,6 +64,12 @@ export function GameCanvas({ engine }: GameCanvasProps) {
       drawBoss(ctx, engine.boss, engine.gameTime)
     }
 
+    for (const pu of engine.powerups) {
+      if (pu.alive) {
+        drawPowerupIcon(ctx, pu.x, pu.y, pu.type, pu.bobTimer)
+      }
+    }
+
     if (engine.player.alive) {
       drawPlayer(ctx, engine.player, engine.gameTime)
       drawEngineTrail(ctx, engine.player.x, engine.player.y + engine.player.height / 2, engine.player.vx, engine.player.vy)
@@ -70,10 +79,20 @@ export function GameCanvas({ engine }: GameCanvasProps) {
 
     ctx.restore()
 
+    if (useBloom) {
+      const bloomBuf = initBloomCanvas(cw, ch)
+      const bCtx = bloomBuf.getContext('2d')
+      if (bCtx) {
+        bCtx.clearRect(0, 0, cw, ch)
+        bCtx.drawImage(canvas, 0, 0)
+        applyBloom(bloomBuf, ctx, cw, ch)
+      }
+    }
+
     drawFlash(ctx, engine.flashIntensity, engine.flashColor, cw, ch)
 
     rafRef.current = requestAnimationFrame(render)
-  }, [])
+  }, [quality])
 
   useEffect(() => {
     const canvas = canvasRef.current
