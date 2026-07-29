@@ -286,10 +286,6 @@ export class GameEngine {
     const bx = p.x
     const by = p.y - p.height / 2 - 10
 
-    const aimAngle = inputManager.state.aimAngle
-    const aimAssist = useGameStore.getState().settings.aimAssist
-    const assistOffset = aimAssist ? this.getAimAssistAngle() : 0
-
     const bulletSpeed = 650
     const damage = 10 + (p.weaponLevel - 1) * 2
 
@@ -298,7 +294,7 @@ export class GameEngine {
 
     for (let i = 0; i < bulletCount; i++) {
       const spread = bulletCount > 1 ? (i - (bulletCount - 1) / 2) * spreadAngle : 0
-      const angle = aimAngle + spread + assistOffset * 0.3
+      const angle = -Math.PI / 2 + spread
 
       const b: Bullet = {
         x: bx, y: by, z: 0,
@@ -318,7 +314,7 @@ export class GameEngine {
     this.muzzleFlashTimer = 0.1
     this.muzzleX = bx
     this.muzzleY = by
-    this.muzzleAngle = aimAngle
+    this.muzzleAngle = -Math.PI / 2
     audioManager.playSfxSynth('shoot')
   }
 
@@ -352,35 +348,6 @@ export class GameEngine {
       case 'homing': return '#00ff88'
       default: return '#00ccff'
     }
-  }
-
-  private getAimAssistAngle(): number {
-    const p = this.player
-    const targets = this.bossActive && this.boss ? [this.boss] : this.enemies
-    if (targets.length === 0) return 0
-
-    const settings = useGameStore.getState().settings
-    if (!settings.aimAssist) return 0
-
-    let closest: { x: number; y: number } | null = null
-    let closestDist = Infinity
-    for (const e of targets) {
-      if (!e.alive) continue
-      const dx = e.x - p.x
-      const dy = e.y - p.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < closestDist) {
-        closestDist = dist
-        closest = e
-      }
-    }
-    if (!closest) return 0
-
-    const dx = closest.x - p.x
-    const dy = closest.y - p.y
-    const angle = Math.atan2(dy, dx)
-    const diff = angle - (-Math.PI / 2)
-    return clamp(diff, -0.5, 0.5)
   }
 
   private activateBomb(): void {

@@ -26,11 +26,6 @@ export function SettingsScreen() {
         value={settings.autoFire}
         onChange={(v) => setSettings({ autoFire: v })}
       />
-      <SettingToggle
-        label="Aim Assist"
-        value={settings.aimAssist}
-        onChange={(v) => setSettings({ aimAssist: v })}
-      />
       <SettingSlider
         label="Joystick Size"
         value={settings.joystickSize}

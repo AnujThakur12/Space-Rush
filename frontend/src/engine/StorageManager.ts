@@ -86,7 +86,7 @@ export class StorageManager {
     return {
       musicVolume: 0.5, sfxVolume: 0.7,
       joystickSize: 0.5, joystickOpacity: 0.5, joystickSensitivity: 1,
-      autoFire: true, aimAssist: true, vibration: true, quality: 'auto',
+      autoFire: true, vibration: true, quality: 'auto',
     }
   }
 

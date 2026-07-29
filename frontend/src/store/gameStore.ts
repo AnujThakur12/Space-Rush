@@ -22,7 +22,6 @@ const DEFAULT_SETTINGS: GameSettings = {
   joystickOpacity: 0.5,
   joystickSensitivity: 1,
   autoFire: true,
-  aimAssist: true,
   vibration: true,
   quality: 'auto',
 }

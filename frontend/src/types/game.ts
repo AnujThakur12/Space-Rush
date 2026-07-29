@@ -176,7 +176,6 @@ export interface GameSettings {
   joystickOpacity: number
   joystickSensitivity: number
   autoFire: boolean
-  aimAssist: boolean
   vibration: boolean
   quality: 'auto' | 'high' | 'low'
 }

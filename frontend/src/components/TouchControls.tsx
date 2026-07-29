@@ -9,24 +9,22 @@ export function TouchControls() {
   const isPlaying = screen === 'playing'
 
   const [isTouchDevice, setIsTouchDevice] = useState(false)
-  const [joystickCenter, setJoystickCenter] = useState({ x: 100, y: 0 })
-  const [joystickActive, setJoystickActive] = useState(false)
+  const [joystickCenter, setJoystickCenter] = useState({ x: 0, y: 0 })
+  const [joystickVisible, setJoystickVisible] = useState(false)
   const [knobOffset, setKnobOffset] = useState({ x: 0, y: 0 })
 
   const containerRef = useRef<HTMLDivElement>(null)
   const joystickId = useRef<number | null>(null)
   const fireTouchId = useRef<number | null>(null)
+  const touchStartPos = useRef({ x: 0, y: 0 })
 
-  const JOYSTICK_SIZE = 120
-  const KNOB_SIZE = 44
-  const MAX_DIST = 55
+  const JOYSTICK_SIZE = 80
+  const KNOB_SIZE = 28
+  const MAX_DIST = 35
 
   useEffect(() => {
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
     setIsTouchDevice(isTouch)
-    if (isTouch) {
-      setJoystickCenter({ x: 100, y: window.innerHeight - 100 })
-    }
   }, [])
 
   useEffect(() => {
@@ -34,12 +32,8 @@ export function TouchControls() {
     const el = containerRef.current
     if (!el) return
 
-    const getJoystickCenter = () => ({ x: 100, y: window.innerHeight - 100 })
-
     const onTouchStart = (e: TouchEvent) => {
       e.preventDefault()
-      if (joystickId.current !== null) return
-
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]
         const isRightSide = t.clientX > window.innerWidth / 2
@@ -49,9 +43,10 @@ export function TouchControls() {
           inputManager.state.firing = true
         } else if (!isRightSide && joystickId.current === null) {
           joystickId.current = t.identifier
-          const center = getJoystickCenter()
-          setJoystickCenter(center)
-          setJoystickActive(true)
+          touchStartPos.current = { x: t.clientX, y: t.clientY }
+          setJoystickCenter({ x: t.clientX, y: t.clientY })
+          setJoystickVisible(true)
+          setKnobOffset({ x: 0, y: 0 })
           inputManager.state.touchActive = true
         }
       }
@@ -63,9 +58,8 @@ export function TouchControls() {
         const t = e.changedTouches[i]
 
         if (t.identifier === joystickId.current) {
-          const center = getJoystickCenter()
-          const dx = t.clientX - center.x
-          const dy = t.clientY - center.y
+          const dx = t.clientX - touchStartPos.current.x
+          const dy = t.clientY - touchStartPos.current.y
           const dist = Math.hypot(dx, dy)
           const clamped = Math.min(dist, MAX_DIST)
           const angle = Math.atan2(dy, dx)
@@ -73,7 +67,7 @@ export function TouchControls() {
           const normDx = (Math.cos(angle) * clamped) / MAX_DIST
           const normDy = (Math.sin(angle) * clamped) / MAX_DIST
 
-          setKnobOffset({ x: normDx * MAX_DIST, y: normDy * MAX_DIST })
+          setKnobOffset({ x: Math.cos(angle) * clamped, y: Math.sin(angle) * clamped })
 
           inputManager.state.touchX = normDx
           inputManager.state.touchY = -normDy
@@ -91,9 +85,8 @@ export function TouchControls() {
 
         if (t.identifier === joystickId.current) {
           joystickId.current = null
-          setJoystickActive(false)
+          setJoystickVisible(false)
           setKnobOffset({ x: 0, y: 0 })
-
           inputManager.state.touchX = 0
           inputManager.state.touchY = 0
           inputManager.state.joystickAngle = 0
@@ -135,8 +128,7 @@ export function TouchControls() {
         zIndex: 20, touchAction: 'none', pointerEvents: 'auto',
       }}
     >
-      {/* Joystick base */}
-      {joystickActive && (
+      {joystickVisible && (
         <div style={{
           position: 'absolute',
           left: joystickCenter.x - JOYSTICK_SIZE / 2,
@@ -144,11 +136,10 @@ export function TouchControls() {
           width: JOYSTICK_SIZE,
           height: JOYSTICK_SIZE,
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.06)',
-          border: '2px solid rgba(255,255,255,0.12)',
+          background: 'rgba(255,255,255,0.05)',
+          border: '1.5px solid rgba(255,255,255,0.1)',
           pointerEvents: 'none',
         }}>
-          {/* Knob */}
           <div style={{
             position: 'absolute',
             left: '50%',
@@ -156,31 +147,29 @@ export function TouchControls() {
             width: KNOB_SIZE,
             height: KNOB_SIZE,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(0,180,255,0.4), rgba(0,100,255,0.15))',
-            border: '2px solid rgba(0,180,255,0.3)',
+            background: 'radial-gradient(circle, rgba(0,180,255,0.35), rgba(0,100,255,0.12))',
+            border: '1.5px solid rgba(0,180,255,0.25)',
             transform: `translate(-50%, -50%) translate(${knobOffset.x}px, ${knobOffset.y}px)`,
             pointerEvents: 'none',
           }} />
         </div>
       )}
 
-      {/* Fire button indicator */}
       {fireTouchId.current !== null && (
         <div style={{
           position: 'fixed',
-          right: 40,
-          bottom: 120,
-          width: 72,
-          height: 72,
+          right: 35,
+          bottom: 100,
+          width: 60, height: 60,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,50,50,0.4), rgba(200,0,0,0.15))',
-          border: '2px solid rgba(255,50,50,0.3)',
+          background: 'radial-gradient(circle, rgba(255,50,50,0.35), rgba(200,0,0,0.12))',
+          border: '1.5px solid rgba(255,50,50,0.25)',
           pointerEvents: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'rgba(255,255,255,0.5)',
-          fontSize: 10,
+          color: 'rgba(255,255,255,0.4)',
+          fontSize: 8,
           fontWeight: 700,
           letterSpacing: '1px',
         }}>
@@ -188,19 +177,18 @@ export function TouchControls() {
         </div>
       )}
 
-      {/* Auto-fire toggle */}
       <button
         onClick={() => setSettings({ autoFire: !settings.autoFire })}
         style={{
           position: 'fixed',
-          right: 'max(12px, env(safe-area-inset-right, 12px))',
-          bottom: 'max(60px, env(safe-area-inset-bottom, 60px))',
-          width: 40, height: 40,
-          borderRadius: 8,
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          color: settings.autoFire ? '#00ff88' : 'rgba(255,255,255,0.4)',
-          fontSize: 9,
+          right: 'max(10px, env(safe-area-inset-right, 10px))',
+          bottom: 'max(50px, env(safe-area-inset-bottom, 50px))',
+          width: 36, height: 36,
+          borderRadius: 6,
+          background: 'rgba(0,0,0,0.3)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          color: settings.autoFire ? '#00ff88' : 'rgba(255,255,255,0.35)',
+          fontSize: 8,
           fontWeight: 700,
           cursor: 'pointer',
           zIndex: 25,
