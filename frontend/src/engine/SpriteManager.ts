@@ -37,8 +37,15 @@ const SPRITE_MAP: Record<string, string> = {
   powerup_rapid_fire: `${ASSET_PATH}/powerup_rapid_fire.png`,
   powerup_coin_magnet: `${ASSET_PATH}/powerup_coin_magnet.png`,
 
-  ui_shield: `${ASSET_PATH}/ui_shield.png`,
+  weapon_laser: `${ASSET_PATH}/weapon_laser.png`,
+  weapon_machinegun: `${ASSET_PATH}/weapon_machinegun.png`,
+  weapon_plasma: `${ASSET_PATH}/weapon_plasma.png`,
+  weapon_rocket: `${ASSET_PATH}/weapon_rocket.png`,
+  weapon_tripleshot: `${ASSET_PATH}/weapon_tripleshot.png`,
+
+  shield_bubble: `${ASSET_PATH}/shield.png`,
   ui_life: `${ASSET_PATH}/ui_life.png`,
+  ui_shield: `${ASSET_PATH}/ui_shield.png`,
 
   bg_stars: `${ASSET_PATH}/Background/starBackground.png`,
   bg_nebula: `${ASSET_PATH}/Background/nebula.png`,

@@ -3,9 +3,9 @@ import type { GameEngine } from '../engine/GameEngine'
 import { useGameStore } from '../store/gameStore'
 import { spriteManager } from '../engine/SpriteManager'
 import { drawBackground } from './Background'
-import { drawPlayer, drawEnemy, drawBoss, drawBullet, drawPowerupIcon } from './Sprites'
+import { drawPlayer, drawEnemy, drawBoss, drawBullet, drawPowerupIcon, drawMuzzleFlash, drawEngineTrail } from './Sprites'
 import { drawParticles } from './Particles'
-import { drawFlash, drawEngineTrail, drawMuzzleFlash } from './effects'
+import { drawFlash } from './effects'
 
 interface GameCanvasProps {
   engine: GameEngine
@@ -17,7 +17,6 @@ export function GameCanvas({ engine }: GameCanvasProps) {
   const lastTimeRef = useRef(0)
   const screenRef = useRef(engine)
   const [spritesReady, setSpritesReady] = useState(false)
-  const quality = useGameStore((s) => s.settings.quality)
 
   screenRef.current = engine
 
@@ -45,7 +44,6 @@ export function GameCanvas({ engine }: GameCanvasProps) {
     engine.canvasH = ch
 
     ctx.save()
-
     const shakeX = engine.screenShakeIntensity > 0 ? (Math.random() - 0.5) * engine.screenShakeIntensity : 0
     const shakeY = engine.screenShakeIntensity > 0 ? (Math.random() - 0.5) * engine.screenShakeIntensity : 0
     ctx.translate(shakeX, shakeY)
@@ -59,7 +57,7 @@ export function GameCanvas({ engine }: GameCanvasProps) {
     }
 
     if (engine.muzzleFlashTimer > 0) {
-      drawMuzzleFlash(ctx, engine.muzzleX, engine.muzzleY, engine.muzzleFlashTimer, 0.08)
+      drawMuzzleFlash(ctx, engine.muzzleX, engine.muzzleY, engine.muzzleAngle, engine.muzzleFlashTimer / 0.1)
     }
 
     for (const e of engine.enemies) {
@@ -71,9 +69,7 @@ export function GameCanvas({ engine }: GameCanvasProps) {
     }
 
     for (const pu of engine.powerups) {
-      if (pu.alive) {
-        drawPowerupIcon(ctx, pu.x, pu.y, pu.type, pu.bobTimer)
-      }
+      if (pu.alive) drawPowerupIcon(ctx, pu.x, pu.y, pu.type, pu.bobTimer)
     }
 
     if (engine.player.alive) {
@@ -135,13 +131,8 @@ export function GameCanvas({ engine }: GameCanvasProps) {
     <canvas
       ref={canvasRef}
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 1,
-        display: 'block',
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        zIndex: 1, display: 'block',
       }}
     />
   )

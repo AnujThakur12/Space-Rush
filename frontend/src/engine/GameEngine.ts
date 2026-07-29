@@ -60,6 +60,7 @@ export class GameEngine {
   muzzleFlashTimer = 0
   muzzleX = 0
   muzzleY = 0
+  muzzleAngle = -Math.PI / 2
 
   private lastTime = 0
   private enemyTimer = 0
@@ -317,6 +318,7 @@ export class GameEngine {
     this.muzzleFlashTimer = 0.1
     this.muzzleX = bx
     this.muzzleY = by
+    this.muzzleAngle = aimAngle
     audioManager.playSfxSynth('shoot')
   }
 
@@ -1142,16 +1144,20 @@ export class GameEngine {
 
   private maybeDropPowerup(x: number, y: number): void {
     if (Math.random() < 0.12) {
-      const weights = [40, 20, 15, 10, 10, 5]
+      const weights = [35, 20, 15, 10, 10, 10]
       const total = weights.reduce((a, b) => a + b)
       let r = Math.random() * total
-      let type: PowerUpType = 'bomb'
+      let type: PowerUpType = 'weapon'
       for (let i = 0; i < weights.length; i++) {
         r -= weights[i]
         if (r <= 0) {
-          type = (['weapon', 'shield', 'bomb', 'slowmo', 'homing', 'rapid'] as PowerUpType[])[i]
+          type = (['weapon', 'shield', 'bomb', 'homing', 'rapid', 'slowmo'] as PowerUpType[])[i]
           break
         }
+      }
+      if (type === 'weapon') {
+        const p = this.player
+        if (p.weaponLevel >= 5) type = Math.random() < 0.5 ? 'shield' : 'bomb'
       }
       this.spawnPowerupAt(x, y, type)
     }
