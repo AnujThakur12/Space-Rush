@@ -1,6 +1,8 @@
 import type { Player, Enemy, Boss, Bullet } from '../types/game'
 import { spriteManager } from '../engine/SpriteManager'
 
+const SCALE = 2.2
+
 function playerSpriteKey(plane: string): string {
   switch (plane) {
     case 'eagle': return 'player_eagle'
@@ -47,6 +49,8 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, p: Player, time: numbe
   ctx.translate(0, hover)
   ctx.rotate(roll)
 
+  ctx.imageSmoothingEnabled = false
+
   let spriteKey = playerSpriteKey(p.plane)
   if (p.hp < p.maxHp * 0.3) {
     spriteKey = 'player_damaged'
@@ -58,58 +62,71 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, p: Player, time: numbe
 
   const img = spriteManager.get(spriteKey)
   if (img) {
-    const drawW = 55
-    const drawH = 55 * (img.height / img.width)
+    const drawW = Math.round(img.width * SCALE * 0.55)
+    const drawH = Math.round(img.height * SCALE * 0.55)
+    ctx.shadowColor = '#0088ff'
+    ctx.shadowBlur = 25
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
   }
 
   const enginePulse = 0.5 + Math.sin(time * 6) * 0.25 + Math.sin(time * 13) * 0.1
-  const exhLen = 8 + Math.random() * 6 * enginePulse
+  const exhLen = (16 + Math.random() * 12) * enginePulse
 
   ctx.shadowColor = '#ff6600'
-  ctx.shadowBlur = 18
-  ctx.fillStyle = `rgba(255, 140, 0, ${0.45 * enginePulse})`
+  ctx.shadowBlur = 30
+  ctx.fillStyle = `rgba(255, 140, 0, ${0.5 * enginePulse})`
   ctx.beginPath()
-  ctx.moveTo(-8, 24)
-  ctx.lineTo(8, 24)
-  ctx.lineTo(5, 24 + exhLen)
-  ctx.lineTo(-5, 24 + exhLen)
+  ctx.moveTo(-18, 38)
+  ctx.lineTo(18, 38)
+  ctx.lineTo(12, 38 + exhLen)
+  ctx.lineTo(-12, 38 + exhLen)
   ctx.closePath()
   ctx.fill()
 
   ctx.shadowColor = '#ffaa00'
-  ctx.shadowBlur = 22
-  ctx.fillStyle = `rgba(255, 200, 50, ${0.3 * enginePulse})`
+  ctx.shadowBlur = 35
+  ctx.fillStyle = `rgba(255, 200, 50, ${0.35 * enginePulse})`
   ctx.beginPath()
-  ctx.moveTo(-4, 24)
-  ctx.lineTo(4, 24)
-  ctx.lineTo(2.5, 24 + exhLen * 0.6)
-  ctx.lineTo(-2.5, 24 + exhLen * 0.6)
+  ctx.moveTo(-10, 38)
+  ctx.lineTo(10, 38)
+  ctx.lineTo(6, 38 + exhLen * 0.65)
+  ctx.lineTo(-6, 38 + exhLen * 0.65)
   ctx.closePath()
   ctx.fill()
 
   ctx.shadowColor = '#ffffff'
-  ctx.shadowBlur = 14
-  ctx.fillStyle = `rgba(255, 255, 255, ${0.15 * enginePulse})`
+  ctx.shadowBlur = 20
+  ctx.fillStyle = `rgba(255, 255, 255, ${0.18 * enginePulse})`
   ctx.beginPath()
-  ctx.moveTo(-1.5, 24)
-  ctx.lineTo(1.5, 24)
-  ctx.lineTo(0, 24 + exhLen * 0.35)
+  ctx.moveTo(-4, 38)
+  ctx.lineTo(4, 38)
+  ctx.lineTo(0, 38 + exhLen * 0.4)
   ctx.closePath()
+  ctx.fill()
+
+  ctx.shadowBlur = 0
+  ctx.shadowColor = '#ff4400'
+  ctx.shadowBlur = 12
+  ctx.fillStyle = `rgba(255, 68, 0, ${0.4 + Math.sin(time * 3) * 0.2})`
+  ctx.beginPath()
+  ctx.arc(-50, 12, 3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(50, 12, 3, 0, Math.PI * 2)
   ctx.fill()
 
   if (p.invincible > 0 && Math.sin(time * 30) > 0) {
     ctx.shadowBlur = 0
-    const shieldAlpha = 0.3 + Math.sin(time * 8) * 0.15
-    ctx.strokeStyle = `rgba(100, 180, 255, ${shieldAlpha})`
-    ctx.lineWidth = 1.5
-    ctx.setLineDash([4, 6])
+    ctx.strokeStyle = `rgba(100, 180, 255, ${0.3 + Math.sin(time * 8) * 0.15})`
+    ctx.lineWidth = 2
+    ctx.setLineDash([6, 8])
     ctx.beginPath()
-    ctx.arc(0, 0, 32, 0, Math.PI * 2)
+    ctx.arc(0, 0, 70, 0, Math.PI * 2)
     ctx.stroke()
     ctx.setLineDash([])
   }
 
+  ctx.imageSmoothingEnabled = true
   ctx.restore()
 }
 
@@ -117,38 +134,35 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, time: number)
   ctx.save()
   ctx.translate(e.x, e.y)
 
+  ctx.imageSmoothingEnabled = false
+
   const flash = e.flashTimer > 0
   const spriteKey = enemySpriteKey(e.type)
   const img = spriteManager.get(spriteKey)
 
-  if (flash && img) {
-    ctx.globalAlpha = 0.8
-    ctx.drawImage(img, -e.width / 2, -e.height / 2, e.width, e.height)
-
-    ctx.globalAlpha = 1
-    ctx.shadowColor = '#ffffff'
-    ctx.shadowBlur = 16
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.arc(0, 0, Math.max(e.width, e.height) * 0.5, 0, Math.PI * 2)
-    ctx.stroke()
-  } else if (img) {
+  if (img) {
     const bob = Math.sin(time * 2 + e.x * 0.01) * 2
     ctx.translate(0, bob)
 
-    ctx.drawImage(img, -e.width / 2, -e.height / 2, e.width, e.height)
+    if (flash) {
+      ctx.shadowColor = '#ffffff'
+      ctx.shadowBlur = 20
+      ctx.drawImage(img, -e.width / 2, -e.height / 2, e.width, e.height)
 
-    const typeColor = hitColorForEnemy(e.type)
-    ctx.shadowColor = typeColor
-    ctx.shadowBlur = 8
-    ctx.strokeStyle = `rgba(255,255,255,0.08)`
-    ctx.lineWidth = 0.5
-    ctx.beginPath()
-    ctx.arc(0, 0, Math.max(e.width, e.height) * 0.48, 0, Math.PI * 2)
-    ctx.stroke()
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(0, 0, Math.max(e.width, e.height) * 0.5, 0, Math.PI * 2)
+      ctx.stroke()
+    } else {
+      const typeColor = hitColorForEnemy(e.type)
+      ctx.shadowColor = typeColor
+      ctx.shadowBlur = 12
+      ctx.drawImage(img, -e.width / 2, -e.height / 2, e.width, e.height)
+    }
   }
 
+  ctx.imageSmoothingEnabled = true
   ctx.restore()
 }
 
@@ -167,6 +181,8 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: Boss, time: number
   ctx.save()
   ctx.translate(boss.x, boss.y)
 
+  ctx.imageSmoothingEnabled = false
+
   if (boss.introTimer > 0) {
     const scale = Math.max(0.1, 1 - boss.introTimer / 2.5)
     ctx.scale(scale, scale)
@@ -178,50 +194,47 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: Boss, time: number
 
   const img = spriteManager.get(spriteKey)
   if (img) {
-    const bw = img.width
-    const bh = img.height
-    const scale = 1.2
-    const drawW = bw * scale
-    const drawH = bh * scale
-
-    ctx.shadowColor = phaseColor
-    ctx.shadowBlur = 24
-    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
+    const drawW = img.width * SCALE * 0.6
+    const drawH = img.height * SCALE * 0.6
 
     ctx.shadowColor = phaseColor
     ctx.shadowBlur = 35
-    ctx.strokeStyle = `rgba(255,255,255,0.06)`
+
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
+
+    ctx.shadowBlur = 40
+    ctx.strokeStyle = `rgba(255,255,255,0.05)`
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.arc(0, 0, Math.max(drawW, drawH) * 0.5 + 5, 0, Math.PI * 2)
+    ctx.arc(0, 0, Math.max(drawW, drawH) * 0.5 + 10, 0, Math.PI * 2)
     ctx.stroke()
   }
 
   const sideTurretRot = time * 0.3
-  ctx.shadowBlur = 10
-  ctx.strokeStyle = `rgba(255, 100, 0, 0.15)`
-  ctx.lineWidth = 2
-  const turretLen = 25
+  ctx.shadowBlur = 12
+  ctx.strokeStyle = `rgba(255, 100, 0, 0.2)`
+  ctx.lineWidth = 3
+  const turretLen = 40
   ctx.beginPath()
-  ctx.moveTo(-50, 0)
-  ctx.lineTo(-50 - Math.cos(sideTurretRot) * turretLen, Math.sin(sideTurretRot) * turretLen)
+  ctx.moveTo(-70, 0)
+  ctx.lineTo(-70 - Math.cos(sideTurretRot) * turretLen, Math.sin(sideTurretRot) * turretLen)
   ctx.stroke()
   ctx.beginPath()
-  ctx.moveTo(50, 0)
-  ctx.lineTo(50 + Math.cos(sideTurretRot + Math.PI) * turretLen, Math.sin(sideTurretRot + Math.PI) * turretLen)
+  ctx.moveTo(70, 0)
+  ctx.lineTo(70 + Math.cos(sideTurretRot + Math.PI) * turretLen, Math.sin(sideTurretRot + Math.PI) * turretLen)
   ctx.stroke()
 
   if (boss.hp < boss.maxHp * 0.3 && boss.phase >= 2) {
-    const warningFlash = Math.sin(time * 6) > 0
-    if (warningFlash) {
+    if (Math.sin(time * 6) > 0) {
       ctx.shadowBlur = 0
-      ctx.fillStyle = `rgba(255, 0, 0, ${0.06 + Math.sin(time * 8) * 0.03})`
+      ctx.fillStyle = `rgba(255, 0, 0, ${0.08 + Math.sin(time * 8) * 0.04})`
       ctx.beginPath()
-      ctx.arc(0, 0, 100, 0, Math.PI * 2)
+      ctx.arc(0, 0, 160, 0, Math.PI * 2)
       ctx.fill()
     }
   }
 
+  ctx.imageSmoothingEnabled = true
   ctx.restore()
 }
 
@@ -229,15 +242,25 @@ export function drawBullet(ctx: CanvasRenderingContext2D, b: Bullet) {
   ctx.save()
   ctx.translate(b.x, b.y)
 
+  ctx.imageSmoothingEnabled = false
+
   if (b.isPlayer) {
     const angle = Math.atan2(b.vy, b.vx)
     ctx.rotate(angle + Math.PI / 2)
 
     const img = spriteManager.get('laser_green')
     if (img) {
+      const w = img.width * 2.5
+      const h = img.height * 2.5
+
       ctx.shadowColor = '#00ff88'
-      ctx.shadowBlur = 14
-      ctx.drawImage(img, -img.width / 2, -img.height / 2)
+      ctx.shadowBlur = 25
+      ctx.drawImage(img, -w / 2, -h / 2, w, h)
+
+      ctx.shadowBlur = 35
+      ctx.globalAlpha = 0.3
+      ctx.drawImage(img, -w / 2 - 2, -h / 2, w + 4, h)
+      ctx.globalAlpha = 1
     }
   } else {
     const angle = Math.atan2(b.vy, b.vx)
@@ -245,12 +268,21 @@ export function drawBullet(ctx: CanvasRenderingContext2D, b: Bullet) {
 
     const img = spriteManager.get('laser_red')
     if (img) {
+      const w = img.width * 2.5
+      const h = img.height * 2.5
+
       ctx.shadowColor = '#ff3333'
-      ctx.shadowBlur = 12
-      ctx.drawImage(img, -img.width / 2, -img.height / 2)
+      ctx.shadowBlur = 22
+      ctx.drawImage(img, -w / 2, -h / 2, w, h)
+
+      ctx.shadowBlur = 30
+      ctx.globalAlpha = 0.3
+      ctx.drawImage(img, -w / 2 - 2, -h / 2, w + 4, h)
+      ctx.globalAlpha = 1
     }
   }
 
+  ctx.imageSmoothingEnabled = true
   ctx.restore()
 }
 
@@ -258,7 +290,9 @@ export function drawPowerupIcon(ctx: CanvasRenderingContext2D, x: number, y: num
   ctx.save()
   ctx.translate(x, y)
 
-  const bob = Math.sin(bobTimer * 3) * 3
+  ctx.imageSmoothingEnabled = false
+
+  const bob = Math.sin(bobTimer * 3) * 4
   ctx.translate(0, bob)
 
   const spriteKey = powerupSpriteKey(type)
@@ -274,22 +308,13 @@ export function drawPowerupIcon(ctx: CanvasRenderingContext2D, x: number, y: num
 
   if (img) {
     const pulse = 0.8 + Math.sin(bobTimer * 4) * 0.2
+    const w = img.width * 2.0
+    const h = img.height * 2.0
     ctx.shadowColor = glowColor
-    ctx.shadowBlur = 18 * pulse
-    ctx.drawImage(img, -img.width / 2, -img.height / 2)
+    ctx.shadowBlur = 25 * pulse
+    ctx.drawImage(img, -w / 2, -h / 2, w, h)
   }
 
-  ctx.restore()
-}
-
-export function drawMeteor(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, rotation: number) {
-  const img = spriteManager.get(size > 8 ? 'bg_star_big' : 'bg_star_small')
-  if (!img) return
-
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(rotation)
-  ctx.globalAlpha = 0.15
-  ctx.drawImage(img, -img.width / 2, -img.height / 2)
+  ctx.imageSmoothingEnabled = true
   ctx.restore()
 }

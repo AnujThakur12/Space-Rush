@@ -19,17 +19,14 @@ const PLANE_STATS: Record<string, { speed: number; health: number; damage: numbe
 }
 
 const ENEMY_TYPES: Record<EnemyType, { hp: number; speed: number; score: number; coins: number; fireRate: number; size: number }> = {
-  basic: { hp: 1, speed: 120, score: 100, coins: 5, fireRate: 0, size: 28 },
-  fast: { hp: 1, speed: 220, score: 150, coins: 7, fireRate: 0, size: 32 },
-  tank: { hp: 4, speed: 80, score: 250, coins: 12, fireRate: 0, size: 48 },
-  shooter: { hp: 2, speed: 100, score: 200, coins: 10, fireRate: 2, size: 32 },
-  elite: { hp: 6, speed: 140, score: 500, coins: 25, fireRate: 1.5, size: 44 },
+  basic: { hp: 2, speed: 120, score: 100, coins: 5, fireRate: 0, size: 56 },
+  fast: { hp: 2, speed: 220, score: 150, coins: 7, fireRate: 0.8, size: 64 },
+  tank: { hp: 6, speed: 80, score: 250, coins: 12, fireRate: 0, size: 100 },
+  shooter: { hp: 3, speed: 100, score: 200, coins: 10, fireRate: 1.8, size: 64 },
+  elite: { hp: 10, speed: 140, score: 500, coins: 25, fireRate: 1.2, size: 90 },
 }
 
-const UPGRADE_COST_BASE = 200
-const PLANE_COSTS: Record<string, number> = {
-  eagle: 500, raptor: 1500, phantom: 5000, 'stealth-x': 15000,
-}
+const PLAYER_COLLISION_RADIUS = 35
 
 export class GameEngine {
   player!: Player
@@ -68,6 +65,7 @@ export class GameEngine {
   private enemyTimer = 0
   private difficulty = 1
   private bossWarningShown = false
+  private sideSpawnTimer = 0
 
   init(): void {
     this.initCanvasSize()
@@ -101,8 +99,8 @@ export class GameEngine {
 
   private createPlayer(): void {
     this.player = {
-      x: this.canvasW / 2, y: this.canvasH - 80, z: 0,
-      width: 40, height: 50,
+      x: this.canvasW / 2, y: this.canvasH - 120, z: 0,
+      width: 90, height: 105,
       speed: 300, hp: 5, maxHp: 5, shield: 0, maxShield: 3,
       weaponLevel: 1, weaponType: 'spread',
       fireTimer: 0, fireRate: 0.15,
@@ -295,17 +293,17 @@ export class GameEngine {
 
     const aimAngle = this.getAimAssistAngle()
 
-    const volley = 3
-    const bulletSpeed = 600
+    const volley = 5
+    const bulletSpeed = 650
     const damage = 10 + (p.weaponLevel - 1) * 2
 
     for (let i = 0; i < volley; i++) {
       let angle = -Math.PI / 2
-      angle += (i - 1) * 0.15 + aimAngle * 0.3
+      angle += (i - 2) * 0.08 + aimAngle * 0.3
 
       const b: Bullet = {
         x: bx, y: by, z: 0,
-        width: 4, height: 12,
+        width: 8, height: 20,
         speed: bulletSpeed,
         vx: Math.cos(angle) * bulletSpeed,
         vy: Math.sin(angle) * bulletSpeed,
@@ -318,7 +316,7 @@ export class GameEngine {
       this.bullets.push(b)
     }
 
-    this.muzzleFlashTimer = 0.08
+    this.muzzleFlashTimer = 0.1
     this.muzzleX = bx
     this.muzzleY = by
     audioManager.playSfxSynth('shoot')
@@ -368,9 +366,9 @@ export class GameEngine {
     }
 
     if (this.bossActive && this.boss && this.boss.alive) {
-      this.boss.hp -= 10
+      this.boss.hp -= 20
       this.emitBigExplosion(this.boss.x, this.boss.y, '#ff6600')
-      this.screenShakeIntensity = 15
+      this.screenShakeIntensity = 25
       if (this.boss.hp <= 0 && this.boss.deathTimer <= 0) {
         this.onBossDefeated()
       }
@@ -384,28 +382,28 @@ export class GameEngine {
       }
     }
 
-    this.screenShakeIntensity = 12
-    this.flashTimer = 0.2
+    this.screenShakeIntensity = 20
+    this.flashTimer = 0.3
     this.flashColor = '#ff8800'
-    this.hitStopTimer = 0.05
-    this.addNotification('BOMB!', '#ff6600')
+    this.hitStopTimer = 0.08
+    this.addNotification('💥 BOMB! 💥', '#ff6600')
   }
 
   private emitEngineTrail(): void {
     const p = this.player
     if (!p.alive) return
     const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
-    const count = Math.max(1, Math.floor(speed / 120))
+    const count = Math.max(2, Math.floor(speed / 80))
     for (let i = 0; i < count; i++) {
       this.particles.push({
-        x: p.x + rand(-4, 4),
-        y: p.y + p.height / 2 + rand(-2, 2),
+        x: p.x + rand(-8, 8),
+        y: p.y + p.height / 2 + rand(-4, 4),
         z: 0,
-        vx: rand(-8, 8),
-        vy: rand(40, 100),
-        life: rand(0.2, 0.5),
-        maxLife: 0.5,
-        size: rand(1.5, 4),
+        vx: rand(-15, 15),
+        vy: rand(60, 160),
+        life: rand(0.3, 0.7),
+        maxLife: 0.7,
+        size: rand(2, 6),
         color: `hsl(${20 + Math.random() * 20}, 100%, ${50 + Math.random() * 30}%)`,
         alpha: 1,
         type: 'trail',
@@ -417,16 +415,22 @@ export class GameEngine {
     if (this.bossActive) return
 
     this.difficulty = 1 + (this.currentLevel - 1) * 0.2
-    const spawnRate = Math.max(0.15, 0.8 / this.difficulty)
+    const spawnRate = Math.max(0.08, 0.6 / this.difficulty)
 
     this.enemyTimer -= dt
+    this.sideSpawnTimer -= dt
+
     if (this.enemyTimer <= 0) {
-      this.spawnEnemy()
-      const burst = Math.random() < 0.3 ? 2 : 1
-      for (let i = 1; i < burst; i++) {
-        this.spawnEnemy()
+      const burst = Math.random() < 0.4 ? 2 + Math.floor(Math.random() * 2) : 1
+      for (let i = 0; i < burst; i++) {
+        setTimeout(() => this.spawnEnemy(), i * 80)
       }
-      this.enemyTimer = spawnRate + rand(-0.15, 0.15)
+      this.enemyTimer = spawnRate + rand(-0.1, 0.1)
+    }
+
+    if (this.sideSpawnTimer <= 0 && this.currentLevel >= 3) {
+      this.spawnSideEnemy()
+      this.sideSpawnTimer = 2 + Math.random() * 2
     }
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -440,17 +444,25 @@ export class GameEngine {
       e.x += e.vx * dt
 
       if (e.type === 'fast') {
-        e.vx += Math.sin(this.gameTime * 3 + e.y * 0.01) * 60 * dt
+        e.vx += Math.sin(this.gameTime * 3 + e.y * 0.01) * 80 * dt
         e.vx *= 0.99
       } else if (e.type === 'tank') {
-        e.vx = Math.sin(this.gameTime * 0.5 + e.x * 0.01) * 30
+        e.vx = Math.sin(this.gameTime * 0.5 + e.x * 0.01) * 50
       } else if (e.type === 'shooter') {
-        if (e.y > this.canvasH * 0.3 && e.y < this.canvasH * 0.5) {
-          e.vy *= 0.98
+        if (e.y > this.canvasH * 0.25 && e.y < this.canvasH * 0.45) {
+          e.vy *= 0.97
         }
+      } else if (e.type === 'elite') {
+        e.vx += Math.sin(this.gameTime * 2 + e.y * 0.01) * 50 * dt
       }
 
-      if (e.y > this.canvasH + 60) {
+      if (e.y > this.canvasH + 80) {
+        e.alive = false
+        this.enemies.splice(i, 1)
+        continue
+      }
+
+      if (e.x < -80 || e.x > this.canvasW + 80) {
         e.alive = false
         this.enemies.splice(i, 1)
         continue
@@ -470,21 +482,18 @@ export class GameEngine {
     const types: EnemyType[] = ['basic', 'basic', 'fast', 'tank', 'shooter']
     if (this.currentLevel >= 3) types.push('shooter', 'shooter')
     if (this.currentLevel >= 5) types.push('elite')
-    if (this.currentLevel >= 8) types.push('elite', 'elite')
-    if (this.currentLevel >= 10) types.push('elite', 'shooter', 'shooter')
+    if (this.currentLevel >= 8) types.push('elite', 'elite', 'fast', 'fast')
+    if (this.currentLevel >= 10) types.push('elite', 'shooter', 'shooter', 'tank')
 
-    const fromSide = Math.random() < 0.2
+    const fromSide = Math.random() < 0.15
     const type = types[Math.floor(Math.random() * types.length)]
     const def = ENEMY_TYPES[type]
-    const lvlMult = 1 + (this.currentLevel - 1) * 0.1
+    const lvlMult = 1 + (this.currentLevel - 1) * 0.12
 
     const x = fromSide
       ? (Math.random() < 0.5 ? -40 : this.canvasW + 40)
-      : rand(50, this.canvasW - 50)
-    const y = fromSide ? rand(50, this.canvasH * 0.5) : -40
-    const sideVx = fromSide
-      ? (x < 0 ? rand(80, 150) : rand(-150, -80))
-      : rand(-20, 20)
+      : rand(60, this.canvasW - 60)
+    const y = fromSide ? rand(50, this.canvasH * 0.4) : -40
 
     const e: Enemy = {
       x,
@@ -499,8 +508,8 @@ export class GameEngine {
       alive: true,
       fireTimer: rand(0, def.fireRate),
       fireRate: def.fireRate,
-      vx: sideVx,
-      vy: fromSide ? 0 : (def.speed + rand(-20, 20)) * (0.5 + Math.random() * 0.5),
+      vx: fromSide ? (x < 0 ? rand(100, 180) : rand(-180, -100)) : rand(-30, 30),
+      vy: fromSide ? rand(20, 60) : (def.speed + rand(-20, 20)) * (0.6 + Math.random() * 0.6),
       shootAngle: Math.PI / 2,
       flashTimer: 0,
       score: def.score,
@@ -509,48 +518,63 @@ export class GameEngine {
     this.enemies.push(e)
   }
 
-  private fireEnemyWeapon(e: Enemy): void {
-    const b: Bullet = {
-      x: e.x, y: e.y + e.height / 2, z: 0,
-      width: 4, height: 8,
-      speed: 200,
-      vx: 0,
-      vy: 200,
-      damage: 1,
-      isPlayer: false,
+  private spawnSideEnemy(): void {
+    const side = Math.random() < 0.5 ? 'left' : 'right'
+    const x = side === 'left' ? -50 : this.canvasW + 50
+    const types: EnemyType[] = ['fast', 'shooter', 'elite']
+    const type = types[Math.floor(Math.random() * types.length)]
+    const def = ENEMY_TYPES[type]
+    const lvlMult = 1 + (this.currentLevel - 1) * 0.12
+
+    this.enemies.push({
+      x,
+      y: rand(50, this.canvasH * 0.4),
+      z: 0,
+      width: def.size,
+      height: def.size,
+      hp: Math.round(def.hp * lvlMult),
+      maxHp: Math.round(def.hp * lvlMult),
+      speed: def.speed + rand(-20, 20),
+      type,
       alive: true,
-      timer: 3,
-      color: '#ff4444',
-    }
-
-    const dx = this.player.x - e.x
-    const dy = this.player.y - e.y
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    if (dist > 0) {
-      b.vx = (dx / dist) * b.speed
-      b.vy = (dy / dist) * b.speed
-    }
-
-    this.bullets.push(b)
+      fireTimer: rand(0, def.fireRate),
+      fireRate: def.fireRate,
+      vx: side === 'left' ? rand(120, 200) : rand(-200, -120),
+      vy: rand(10, 40),
+      shootAngle: Math.PI / 2,
+      flashTimer: 0,
+      score: def.score,
+      coins: def.coins,
+    })
   }
 
-  private checkBossSpawn(): void {
-    if (this.bossSpawned) return
-    if (this.currentLevel % 5 === 0 && !this.bossLevel) {
-      this.bossLevel = true
-      this.bossSpawned = true
-      this.enemies = []
-      this.boss = this.createBoss(this.currentLevel)
-      this.bossActive = true
+  private fireEnemyWeapon(e: Enemy): void {
+    const bulletCount = e.type === 'shooter' ? 3 : e.type === 'elite' ? 2 : 1
 
-      if (!this.bossWarningShown) {
-        this.bossWarningShown = true
-        this.addNotification('⚠ BOSS INCOMING ⚠', '#ff0000')
-        audioManager.playSfxSynth('boss_hit')
-        this.screenShakeIntensity = 8
-        this.flashTimer = 0.3
-        this.flashColor = '#ff0000'
+    for (let i = 0; i < bulletCount; i++) {
+      const spread = bulletCount > 1 ? (i - (bulletCount - 1) / 2) * 0.12 : 0
+      const dx = this.player.x - e.x
+      const dy = this.player.y - e.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist <= 0) continue
+
+      const baseAngle = Math.atan2(dy, dx)
+      const angle = baseAngle + spread
+      const speed = 220 + e.type === 'elite' ? 50 : 0
+
+      const b: Bullet = {
+        x: e.x, y: e.y + e.height / 2, z: 0,
+        width: 8, height: 16,
+        speed,
+        vx: Math.cos(angle) * (200 + speed),
+        vy: Math.sin(angle) * (200 + speed),
+        damage: 1,
+        isPlayer: false,
+        alive: true,
+        timer: 3,
+        color: '#ff4444',
       }
+      this.bullets.push(b)
     }
   }
 
@@ -561,11 +585,9 @@ export class GameEngine {
 
     if (b.spawnTimer > 0) {
       b.spawnTimer -= dt
-      if (b.spawnTimer <= 0) {
-        b.spawnTimer = 0
-      }
-      b.y += 60 * dt
-      b.y = Math.min(b.y, 100)
+      if (b.spawnTimer <= 0) b.spawnTimer = 0
+      b.y += 50 * dt
+      b.y = Math.min(b.y, 120)
       return
     }
 
@@ -577,34 +599,32 @@ export class GameEngine {
     b.moveTimer += dt
     b.ringRotation += dt * 0.3
 
-    if (b.introTimer > 0) {
-      b.introTimer -= dt
-    }
+    if (b.introTimer > 0) b.introTimer -= dt
 
-    b.targetX = this.canvasW / 2 + Math.sin(b.moveTimer * 0.3) * (this.canvasW * 0.25)
-    b.targetY = 80 + Math.sin(b.moveTimer * 0.2) * 40
+    b.targetX = this.canvasW / 2 + Math.sin(b.moveTimer * 0.3) * (this.canvasW * 0.3)
+    b.targetY = 100 + Math.sin(b.moveTimer * 0.2) * 50
 
     const dx = b.targetX - b.x
     const dy = b.targetY - b.y
-    b.vx += dx * 0.5 * dt
-    b.vy += dy * 0.5 * dt
-    b.vx *= 0.98
-    b.vy *= 0.98
+    b.vx += dx * 0.8 * dt
+    b.vy += dy * 0.8 * dt
+    b.vx *= 0.97
+    b.vy *= 0.97
     b.x += b.vx * dt * 60
     b.y += b.vy * dt * 60
 
     b.x = clamp(b.x, this.canvasW * 0.1, this.canvasW * 0.9)
-    b.y = clamp(b.y, 40, 150)
+    b.y = clamp(b.y, 50, 180)
 
     b.attackTimer += dt
-    const fireRate = Math.max(0.5, 2 - b.phase * 0.4)
+    const fireRate = Math.max(0.3, 1.5 - b.phase * 0.3)
     if (b.attackTimer >= fireRate) {
       b.attackTimer = 0
       this.fireBossWeapon()
     }
 
-    if (b.phase >= 2 && Math.random() < 0.01) {
-      this.emitSparks(b.x + rand(-60, 60), b.y + rand(-40, 40), '#ff0044')
+    if (b.phase >= 2 && Math.random() < 0.02) {
+      this.emitSparks(b.x + rand(-80, 80), b.y + rand(-50, 50), '#ff0044')
     }
   }
 
@@ -612,19 +632,19 @@ export class GameEngine {
     if (!this.boss) return
 
     const b = this.boss
-    const count = b.phase
+    const count = b.phase + 1
     const angleStep = Math.PI * 2 / count
 
     for (let i = 0; i < count; i++) {
-      const baseAngle = -Math.PI / 2 + i * angleStep + Math.sin(this.gameTime * 2 + i) * 0.2
-      const speed = 180 + b.phase * 20
+      const baseAngle = -Math.PI / 2 + i * angleStep + Math.sin(this.gameTime * 2 + i) * 0.3
+      const speed = 180 + b.phase * 30
 
       const bullet: Bullet = {
-        x: b.x + Math.cos(baseAngle) * 40,
-        y: b.y + Math.sin(baseAngle) * 40,
+        x: b.x + Math.cos(baseAngle) * 50,
+        y: b.y + Math.sin(baseAngle) * 50,
         z: 0,
-        width: 4,
-        height: 8,
+        width: 8,
+        height: 16,
         speed,
         vx: Math.cos(baseAngle) * speed,
         vy: Math.sin(baseAngle) * speed,
@@ -642,12 +662,12 @@ export class GameEngine {
       const dy = this.player.y - b.y
       const dist = Math.sqrt(dx * dx + dy * dy)
       if (dist > 0) {
-        const speed = 250
+        const speed = 280
         const bullet: Bullet = {
-          x: b.x, y: b.y + 30,
+          x: b.x, y: b.y + 40,
           z: 0,
-          width: 4,
-          height: 8,
+          width: 8,
+          height: 16,
           speed,
           vx: (dx / dist) * speed,
           vy: (dy / dist) * speed,
@@ -662,12 +682,32 @@ export class GameEngine {
     }
   }
 
+  private checkBossSpawn(): void {
+    if (this.bossSpawned) return
+    if (this.currentLevel % 5 === 0 && !this.bossLevel) {
+      this.bossLevel = true
+      this.bossSpawned = true
+      this.enemies = []
+      this.boss = this.createBoss(this.currentLevel)
+      this.bossActive = true
+
+      if (!this.bossWarningShown) {
+        this.bossWarningShown = true
+        this.addNotification('⚠ BOSS INCOMING ⚠', '#ff0000')
+        audioManager.playSfxSynth('boss_hit')
+        this.screenShakeIntensity = 12
+        this.flashTimer = 0.4
+        this.flashColor = '#ff0000'
+      }
+    }
+  }
+
   private createBoss(level: number): Boss {
-    const hp = 50 + level * 20
+    const hp = 80 + level * 30
     return {
       x: this.canvasW / 2, y: -80,
       z: 0,
-      width: 100, height: 80,
+      width: 160, height: 140,
       hp, maxHp: hp,
       alive: true,
       phase: 1, maxPhase: 3,
@@ -699,7 +739,7 @@ export class GameEngine {
       b.y += b.vy * dt
       b.timer -= dt
 
-      if (b.timer <= 0 || b.x < -50 || b.x > this.canvasW + 50 || b.y < -50 || b.y > this.canvasH + 50) {
+      if (b.timer <= 0 || b.x < -80 || b.x > this.canvasW + 80 || b.y < -80 || b.y > this.canvasH + 80) {
         b.alive = false
         this.bullets.splice(i, 1)
       }
@@ -724,13 +764,13 @@ export class GameEngine {
   }
 
   private updateParticles(dt: number): void {
-    const maxParticles = this.bossActive ? 400 : 250
+    const maxParticles = this.bossActive ? 600 : 400
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i]
       p.x += p.vx * dt
       p.y += p.vy * dt
-      p.vx *= 0.98
-      p.vy *= 0.98
+      p.vx *= 0.97
+      p.vy *= 0.97
       if (p.gravity) p.vy += p.gravity * dt
       p.life -= dt
       p.alpha = clamp(p.life / p.maxLife, 0, 1)
@@ -749,7 +789,7 @@ export class GameEngine {
     if (this.screenShakeIntensity > 0) {
       this.screenShakeX = (Math.random() - 0.5) * this.screenShakeIntensity * 2
       this.screenShakeY = (Math.random() - 0.5) * this.screenShakeIntensity * 2
-      this.screenShakeIntensity *= 0.88
+      this.screenShakeIntensity *= 0.85
       if (this.screenShakeIntensity < 0.5) {
         this.screenShakeIntensity = 0
         this.screenShakeX = 0
@@ -761,7 +801,7 @@ export class GameEngine {
   private updateFlash(dt: number): void {
     if (this.flashTimer > 0) {
       this.flashTimer -= dt
-      this.flashIntensity = clamp(this.flashTimer / 0.15, 0, 1)
+      this.flashIntensity = clamp(this.flashTimer / 0.2, 0, 1)
     } else {
       this.flashIntensity = 0
     }
@@ -778,35 +818,37 @@ export class GameEngine {
 
   private checkCollisions(): void {
     const p = this.player
-    const comboMult = 1 + Math.min(p.combo, 20) * 0.1
+    const comboMult = 1 + Math.min(p.combo, 30) * 0.1
 
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i]
       if (!b.alive || !b.isPlayer) continue
 
       if (this.bossActive && this.boss && this.boss.alive && this.boss.deathTimer <= 0) {
-        if (this.circleRect({ x: b.x, y: b.y, r: 4 }, { x: this.boss.x, y: this.boss.y, w: this.boss.width, h: this.boss.height })) {
+        if (this.circleRect({ x: b.x, y: b.y, r: 6 }, { x: this.boss.x, y: this.boss.y, w: this.boss.width, h: this.boss.height })) {
           b.alive = false
           this.bullets.splice(i, 1)
           const dmg = Math.round(b.damage * comboMult)
           this.boss.hp -= dmg
 
           this.emitSparks(b.x, b.y, phaseColorForBoss(this.boss))
-          this.emitExplosion(b.x, b.y, '#ff8800', 3)
-          this.screenShakeIntensity = 2
+          this.emitExplosion(b.x, b.y, '#ff8800', 5)
+          this.screenShakeIntensity = 3
           audioManager.playSfxSynth('boss_hit')
 
           if (this.boss.hp <= 0 && this.boss.deathTimer <= 0) {
             this.onBossDefeated()
           } else if (this.boss.hp <= this.boss.maxHp * 0.66 && this.boss.phase === 1) {
             this.boss.phase = 2
-            this.addNotification('PHASE 2', '#ff4400')
-            this.screenShakeIntensity = 6
+            this.addNotification('⚠ PHASE 2 ⚠', '#ff4400')
+            this.screenShakeIntensity = 10
+            this.flashTimer = 0.3
+            this.flashColor = '#ff4400'
           } else if (this.boss.hp <= this.boss.maxHp * 0.33 && this.boss.phase === 2) {
             this.boss.phase = 3
-            this.addNotification('PHASE 3 - FINAL', '#cc00ff')
-            this.screenShakeIntensity = 8
-            this.flashTimer = 0.2
+            this.addNotification('⚠ FINAL PHASE ⚠', '#cc00ff')
+            this.screenShakeIntensity = 12
+            this.flashTimer = 0.3
             this.flashColor = '#cc00ff'
           }
           continue
@@ -817,14 +859,14 @@ export class GameEngine {
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         const e = this.enemies[j]
         if (!e.alive) continue
-        if (this.circleRect({ x: b.x, y: b.y, r: 4 }, { x: e.x, y: e.y, w: e.width, h: e.height })) {
+        if (this.circleRect({ x: b.x, y: b.y, r: 6 }, { x: e.x, y: e.y, w: e.width, h: e.height })) {
           b.alive = false
           this.bullets.splice(i, 1)
           e.hp -= Math.round(b.damage * comboMult)
-          e.flashTimer = 0.05
+          e.flashTimer = 0.08
 
-          this.emitSparks(b.x, b.y, '#ff8800')
-          this.addFloatingText(b.x, b.y - 10, Math.round(b.damage * comboMult).toString(), '#fff')
+          this.emitSparks(b.x, b.y, '#ffcc00')
+          this.addFloatingText(b.x, b.y - 15, Math.round(b.damage * comboMult).toString(), '#fff')
 
           if (e.hp <= 0) {
             this.onEnemyKilled(e, j)
@@ -840,12 +882,12 @@ export class GameEngine {
       const b = this.bullets[i]
       if (!b.alive || b.isPlayer) continue
 
-      if (this.circleCircle({ x: b.x, y: b.y, r: 4 }, { x: p.x, y: p.y, r: 20 })) {
+      if (this.circleCircle({ x: b.x, y: b.y, r: 6 }, { x: p.x, y: p.y, r: PLAYER_COLLISION_RADIUS })) {
         b.alive = false
         this.bullets.splice(i, 1)
 
         if (p.alive && p.invincible <= 0) {
-          const dmg = Math.max(1, b.damage - (this.player as any).armor || 0)
+          const dmg = Math.max(1, b.damage)
           if (p.shield > 0) {
             p.shield = Math.max(0, p.shield - dmg)
             this.emitShieldHit(p.x, p.y)
@@ -853,15 +895,14 @@ export class GameEngine {
             p.hp -= dmg
           }
           p.invincible = 0.5
-          this.screenShakeIntensity = 6
-          this.flashTimer = 0.15
+          this.screenShakeIntensity = 10
+          this.flashTimer = 0.25
           this.flashColor = '#ff0000'
-          this.hitStopTimer = 0.03
+          this.hitStopTimer = 0.05
           audioManager.playSfxSynth('hit')
 
-          if (p.shield > 0) {
-            this.emitSparks(b.x, b.y, '#00ccff')
-          }
+          this.emitSparks(b.x, b.y, p.shield > 0 ? '#00ccff' : '#ff4400')
+          this.emitExplosion(p.x, p.y, '#ff4400', 8)
 
           if (p.hp <= 0) {
             this.onPlayerDeath()
@@ -874,15 +915,16 @@ export class GameEngine {
       const e = this.enemies[j]
       if (!e.alive) continue
 
-      if (this.circleCircle({ x: p.x, y: p.y, r: 20 }, { x: e.x, y: e.y, r: e.width / 2 })) {
+      const enemyR = e.width / 2
+      if (this.circleCircle({ x: p.x, y: p.y, r: PLAYER_COLLISION_RADIUS }, { x: e.x, y: e.y, r: enemyR })) {
         if (p.alive && p.invincible <= 0) {
           p.hp -= 2
           p.invincible = 0.5
           this.emitBigExplosion(e.x, e.y, '#ff4400')
-          this.screenShakeIntensity = 8
-          this.flashTimer = 0.1
+          this.screenShakeIntensity = 12
+          this.flashTimer = 0.2
           this.flashColor = '#ff4400'
-          this.hitStopTimer = 0.04
+          this.hitStopTimer = 0.06
           e.alive = false
           this.enemies.splice(j, 1)
           audioManager.playSfxSynth('explosion')
@@ -893,14 +935,14 @@ export class GameEngine {
     }
 
     if (this.bossActive && this.boss && this.boss.alive && this.boss.deathTimer <= 0) {
-      if (this.circleCircle({ x: p.x, y: p.y, r: 20 }, { x: this.boss.x, y: this.boss.y, r: 50 })) {
+      if (this.circleCircle({ x: p.x, y: p.y, r: PLAYER_COLLISION_RADIUS }, { x: this.boss.x, y: this.boss.y, r: 70 })) {
         if (p.alive && p.invincible <= 0) {
           p.hp -= 3
           p.invincible = 0.5
-          this.screenShakeIntensity = 12
-          this.flashTimer = 0.2
+          this.screenShakeIntensity = 15
+          this.flashTimer = 0.3
           this.flashColor = '#ff0000'
-          this.hitStopTimer = 0.05
+          this.hitStopTimer = 0.08
           this.emitBigExplosion(p.x, p.y, '#ff0000')
           if (p.hp <= 0) this.onPlayerDeath()
         }
@@ -910,7 +952,7 @@ export class GameEngine {
     for (let i = this.powerups.length - 1; i >= 0; i--) {
       const pu = this.powerups[i]
       if (!pu.alive) continue
-      if (this.circleCircle({ x: p.x, y: p.y, r: 20 }, { x: pu.x, y: pu.y, r: 16 })) {
+      if (this.circleCircle({ x: p.x, y: p.y, r: PLAYER_COLLISION_RADIUS }, { x: pu.x, y: pu.y, r: 20 })) {
         pu.alive = false
         this.applyPowerup(pu)
         this.emitCollectEffect(pu.x, pu.y, '#00ff88')
@@ -939,25 +981,34 @@ export class GameEngine {
   private onEnemyKilled(e: Enemy, index: number): void {
     this.player.kills++
     this.player.combo++
-    this.player.comboTimer = 2
+    this.player.comboTimer = 2.5
     if (this.player.combo > this.player.maxCombo) this.player.maxCombo = this.player.combo
 
-    const comboMult = 1 + Math.min(this.player.combo, 20) * 0.1
+    const comboMult = 1 + Math.min(this.player.combo, 30) * 0.1
     const bonusScore = Math.floor(e.score * comboMult)
     this.score += bonusScore
 
     this.emitBigExplosion(e.x, e.y, enemyExplosionColor(e.type))
-    this.screenShakeIntensity = 4
-    this.addFloatingText(e.x, e.y - 20, `+${bonusScore}`, '#ffd700')
+    this.screenShakeIntensity = 6
+    this.addFloatingText(e.x, e.y - 25, `+${bonusScore}`, '#ffd700')
 
     if (this.player.combo >= 5) {
-      this.addFloatingText(e.x, e.y - 40, `${this.player.combo}x COMBO!`, '#ffd700')
+      this.addFloatingText(e.x, e.y - 50, `🔥 ${this.player.combo}x COMBO! 🔥`, '#ffd700')
     }
 
     if (this.player.combo === 10) {
       this.addNotification('🔥 10x COMBO! 🔥', '#ff8800')
+      this.screenShakeIntensity = 8
     } else if (this.player.combo === 25) {
       this.addNotification('⚡ 25x COMBO! ⚡', '#ff4400')
+      this.screenShakeIntensity = 10
+      this.flashTimer = 0.15
+      this.flashColor = '#ff4400'
+    } else if (this.player.combo === 50) {
+      this.addNotification('💀 50x COMBO! 💀', '#ff0000')
+      this.screenShakeIntensity = 15
+      this.flashTimer = 0.25
+      this.flashColor = '#ff0000'
     }
 
     audioManager.playSfxSynth('explosion')
@@ -969,43 +1020,47 @@ export class GameEngine {
 
   private onBossDefeated(): void {
     if (!this.boss) return
-    this.boss.deathTimer = 2
+    this.boss.deathTimer = 3
     this.score += this.boss.level * 500
 
-    const bossName = this.boss.level === 5 ? 'DESTROYER' :
-      this.boss.level === 10 ? 'TITAN' :
-      this.boss.level === 15 ? 'OVERLORD' :
-      this.boss.level === 20 ? 'ANNIHILATOR' : 'WARLORD'
+    const bossNames = ['', '', '', '', 'DESTROYER', '', '', '', '', 'TITAN', '', '', '', '', 'OVERLORD', '', '', '', '', 'ANNIHILATOR']
+    const bossName = bossNames[this.boss.level] || 'WARLORD'
 
     this.addNotification(`💀 ${bossName} DEFEATED! +${this.boss.level * 500}pts 💀`, '#ffd700')
     audioManager.playSfxSynth('bomb')
-    this.screenShakeIntensity = 20
-    this.flashTimer = 0.4
+    this.screenShakeIntensity = 25
+    this.flashTimer = 0.5
     this.flashColor = '#ffd700'
-    this.hitStopTimer = 0.15
+    this.hitStopTimer = 0.2
 
     if (this.boss) {
       this.emitBigExplosion(this.boss.x, this.boss.y, '#ff8800')
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         setTimeout(() => {
           if (this.boss) {
             this.emitBigExplosion(
-              this.boss.x + rand(-80, 80),
-              this.boss.y + rand(-80, 80),
+              this.boss.x + rand(-100, 100),
+              this.boss.y + rand(-100, 100),
               '#ff4400'
             )
           }
-        }, i * 300)
+        }, i * 250)
       }
     }
 
     setTimeout(() => {
       if (!this.boss) return
-      this.emitBigExplosion(this.boss.x, this.boss.y, '#ff8800')
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 8; i++) {
+        this.emitBigExplosion(
+          this.boss.x + rand(-120, 120),
+          this.boss.y + rand(-120, 120),
+          '#ff8800'
+        )
+      }
+      for (let i = 0; i < 6; i++) {
         this.spawnPowerupAt(
-          this.boss.x + rand(-60, 60),
-          this.boss.y + rand(-60, 60)
+          this.boss.x + rand(-70, 70),
+          this.boss.y + rand(-70, 70)
         )
       }
       this.bossActive = false
@@ -1017,22 +1072,26 @@ export class GameEngine {
       this.bossLevel = false
       this.enemies = []
       this.startLevelTransition()
-      this.addNotification(`Level ${this.currentLevel} - Engage!`, '#88bbff')
-    }, 2000)
+      this.addNotification(`🌀 Level ${this.currentLevel} - Engage! 🌀`, '#88bbff')
+    }, 2500)
   }
 
   private onPlayerDeath(): void {
     this.player.alive = false
     this.gameOver = true
     audioManager.playSfxSynth('explosion')
-    this.screenShakeIntensity = 15
-    this.flashTimer = 0.3
+    this.screenShakeIntensity = 20
+    this.flashTimer = 0.4
     this.flashColor = '#ff0000'
+    this.hitStopTimer = 0.15
     this.emitBigExplosion(this.player.x, this.player.y, '#ff4400')
 
     setTimeout(() => {
-      this.emitBigExplosion(this.player.x + rand(-30, 30), this.player.y + rand(-30, 30), '#ff8800')
-    }, 300)
+      this.emitBigExplosion(this.player.x + rand(-40, 40), this.player.y + rand(-40, 40), '#ff8800')
+    }, 200)
+    setTimeout(() => {
+      this.emitBigExplosion(this.player.x + rand(-30, 30), this.player.y + rand(-30, 30), '#ffcc00')
+    }, 400)
 
     if (this.score > useGameStore.getState().highScore) {
       localStorage.setItem('spacerush_highscore', this.score.toString())
@@ -1040,7 +1099,7 @@ export class GameEngine {
   }
 
   private maybeDropPowerup(x: number, y: number): void {
-    if (Math.random() < 0.08) {
+    if (Math.random() < 0.1) {
       const types: PowerUpType[] = ['bomb', 'homing', 'slowmo']
       const type = types[Math.floor(Math.random() * types.length)]
       this.spawnPowerupAt(x, y, type)
@@ -1052,7 +1111,7 @@ export class GameEngine {
     const t = type || types[Math.floor(Math.random() * types.length)]
     this.powerups.push({
       x, y, z: 0,
-      width: 24, height: 24,
+      width: 30, height: 30,
       type: t,
       alive: true,
       vy: 60,
@@ -1065,32 +1124,32 @@ export class GameEngine {
     const p = this.player
     switch (pu.type) {
       case 'bomb':
-        p.bombs = Math.min(p.bombs + 1, 3)
+        p.bombs = Math.min(p.bombs + 1, 5)
         this.addNotification('+BOMB', '#ff6600')
         break
       case 'homing':
         p.weaponType = 'homing'
-        setTimeout(() => { p.weaponType = 'spread' }, 5000)
+        setTimeout(() => { p.weaponType = 'spread' }, 6000)
         this.addNotification('HOMING MISSILES', '#00ffcc')
         break
       case 'slowmo':
-        this.slowMotionTimer = 3
+        this.slowMotionTimer = 4
         this.addNotification('SLOW MOTION', '#88bbff')
         break
     }
   }
 
-  private emitExplosion(x: number, y: number, color: string, count = 10): void {
+  private emitExplosion(x: number, y: number, color: string, count = 15): void {
     for (let i = 0; i < count; i++) {
       const angle = rand(0, PI2)
-      const speed = rand(30, 180)
+      const speed = rand(40, 220)
       this.particles.push({
         x, y, z: 0,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         life: rand(0.2, 0.6),
         maxLife: 0.6,
-        size: rand(2, 6),
+        size: rand(2, 7),
         color,
         alpha: 1,
         type: 'explosion',
@@ -1099,51 +1158,51 @@ export class GameEngine {
   }
 
   private emitBigExplosion(x: number, y: number, color: string): void {
-    const colors = [color, '#ffffff', '#ffd700', '#ff4400']
-    for (let i = 0; i < 20; i++) {
+    const colors = [color, '#ffffff', '#ffd700', '#ff4400', '#ffaa00']
+    for (let i = 0; i < 30; i++) {
       const angle = rand(0, PI2)
-      const speed = rand(40, 250)
+      const speed = rand(50, 300)
       this.particles.push({
         x, y, z: 0,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        life: rand(0.3, 0.8),
-        maxLife: 0.8,
-        size: rand(3, 8),
+        life: rand(0.3, 0.9),
+        maxLife: 0.9,
+        size: rand(3, 10),
         color: colors[Math.floor(Math.random() * colors.length)],
         alpha: 1,
         type: 'explosion',
       })
     }
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       const angle = rand(0, PI2)
-      const speed = rand(20, 100)
+      const speed = rand(20, 120)
       this.particles.push({
         x, y, z: 0,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        life: rand(0.5, 1.2),
-        maxLife: 1.2,
-        size: rand(4, 10),
+        life: rand(0.6, 1.5),
+        maxLife: 1.5,
+        size: rand(5, 14),
         color: 'rgba(100, 100, 120, 0.5)',
         alpha: 0.5,
         type: 'smoke',
-        gravity: 20,
+        gravity: 25,
       })
     }
   }
 
   private emitSparks(x: number, y: number, color: string): void {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       const angle = rand(0, PI2)
-      const speed = rand(60, 200)
+      const speed = rand(80, 280)
       this.particles.push({
         x, y, z: 0,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        life: rand(0.1, 0.3),
-        maxLife: 0.3,
-        size: rand(1, 3),
+        life: rand(0.1, 0.35),
+        maxLife: 0.35,
+        size: rand(1.5, 4),
         color,
         alpha: 1,
         type: 'spark',
@@ -1152,16 +1211,16 @@ export class GameEngine {
   }
 
   private emitShieldHit(x: number, y: number): void {
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 14; i++) {
       const angle = rand(0, PI2)
-      const speed = rand(50, 150)
+      const speed = rand(60, 200)
       this.particles.push({
-        x: x + rand(-10, 10), y: y + rand(-10, 10), z: 0,
+        x: x + rand(-15, 15), y: y + rand(-15, 15), z: 0,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         life: rand(0.2, 0.5),
         maxLife: 0.5,
-        size: rand(1.5, 4),
+        size: rand(2, 5),
         color: '#00ccff',
         alpha: 1,
         type: 'spark',
@@ -1170,16 +1229,16 @@ export class GameEngine {
   }
 
   private emitCollectEffect(x: number, y: number, color: string): void {
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 18; i++) {
       const angle = rand(0, PI2)
-      const speed = rand(30, 100)
+      const speed = rand(40, 130)
       this.particles.push({
         x, y, z: 0,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 40,
-        life: rand(0.3, 0.6),
-        maxLife: 0.6,
-        size: rand(1, 4),
+        vy: Math.sin(angle) * speed - 50,
+        life: rand(0.3, 0.7),
+        maxLife: 0.7,
+        size: rand(1.5, 5),
         color,
         alpha: 1,
         type: 'explosion',
@@ -1190,13 +1249,13 @@ export class GameEngine {
   private addFloatingText(x: number, y: number, text: string, color: string): void {
     this.particles.push({
       x, y, z: 0,
-      vx: 0, vy: -70,
-      life: 1, maxLife: 1,
+      vx: 0, vy: -90,
+      life: 1.2, maxLife: 1.2,
       size: 0, color,
       alpha: 1,
       type: 'text',
       text,
-      textSize: 16,
+      textSize: 22,
     })
   }
 
