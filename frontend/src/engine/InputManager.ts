@@ -36,10 +36,13 @@ class InputManager {
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
 
-    canvas.addEventListener('touchstart', this.onTouchStart, { passive: false })
-    canvas.addEventListener('touchmove', this.onTouchMove, { passive: false })
-    canvas.addEventListener('touchend', this.onTouchEnd, { passive: false })
-    canvas.addEventListener('touchcancel', this.onTouchEnd, { passive: false })
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (!isTouchDevice) {
+      canvas.addEventListener('touchstart', this.onTouchStart, { passive: false })
+      canvas.addEventListener('touchmove', this.onTouchMove, { passive: false })
+      canvas.addEventListener('touchend', this.onTouchEnd, { passive: false })
+      canvas.addEventListener('touchcancel', this.onTouchEnd, { passive: false })
+    }
 
     canvas.addEventListener('mousedown', this.onMouseDown)
     canvas.addEventListener('mousemove', this.onMouseMove)

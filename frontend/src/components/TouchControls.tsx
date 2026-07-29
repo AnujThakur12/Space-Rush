@@ -70,7 +70,7 @@ export function TouchControls() {
           setKnobOffset({ x: Math.cos(angle) * clamped, y: Math.sin(angle) * clamped })
 
           inputManager.state.touchX = normDx
-          inputManager.state.touchY = -normDy
+          inputManager.state.touchY = normDy
           inputManager.state.joystickAngle = angle
           inputManager.state.joystickMagnitude = clamped / MAX_DIST
           inputManager.state.touchActive = true
