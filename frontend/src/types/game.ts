@@ -209,14 +209,9 @@ export interface InputState {
   bombPressed: boolean
   pausePressed: boolean
   keys: Set<string>
-  joystickAngle: number
-  joystickMagnitude: number
   mouseX: number
   mouseY: number
   mouseActive: boolean
-  aimX: number
-  aimY: number
-  aimAngle: number
 }
 
 export interface LeaderboardEntry {

@@ -10,14 +10,9 @@ class InputManager {
     bombPressed: false,
     pausePressed: false,
     keys: new Set(),
-    joystickAngle: 0,
-    joystickMagnitude: 0,
     mouseX: 0,
     mouseY: 0,
     mouseActive: false,
-    aimX: 0,
-    aimY: 0,
-    aimAngle: -Math.PI / 2,
   }
 
   private canvas: HTMLCanvasElement | null = null
@@ -168,8 +163,6 @@ class InputManager {
       this.state.touchActive = false
       this.state.touchX = 0
       this.state.touchY = 0
-      this.state.joystickAngle = 0
-      this.state.joystickMagnitude = 0
     }
   }
 
@@ -199,19 +192,6 @@ class InputManager {
     const rect = this.canvas.getBoundingClientRect()
     this.state.mouseX = e.clientX - rect.left
     this.state.mouseY = e.clientY - rect.top
-  }
-
-  updateAim(playerX: number, playerY: number): void {
-    if (this.state.mouseActive) {
-      this.state.aimX = this.state.mouseX
-      this.state.aimY = this.state.mouseY
-    } else {
-      this.state.aimX = playerX
-      this.state.aimY = playerY - 100
-    }
-    const dx = this.state.aimX - playerX
-    const dy = this.state.aimY - playerY
-    this.state.aimAngle = Math.atan2(dy, dx)
   }
 
   readBomb(): boolean {

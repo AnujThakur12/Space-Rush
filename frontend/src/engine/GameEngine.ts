@@ -248,8 +248,6 @@ export class GameEngine {
     p.x = clamp(p.x, p.width / 2, this.canvasW - p.width / 2)
     p.y = clamp(p.y, p.height / 2, this.canvasH - p.height / 2)
 
-    inputManager.updateAim(p.x, p.y)
-
     p.fireTimer -= dt
     const autoFire = useGameStore.getState().settings.autoFire
     if (input.firing || input.keys.has(' ') || autoFire) {
