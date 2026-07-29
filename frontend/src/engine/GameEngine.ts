@@ -19,11 +19,11 @@ const PLANE_STATS: Record<string, { speed: number; health: number; damage: numbe
 }
 
 const ENEMY_TYPES: Record<EnemyType, { hp: number; speed: number; score: number; coins: number; fireRate: number; size: number }> = {
-  basic: { hp: 2, speed: 120, score: 100, coins: 5, fireRate: 0, size: 56 },
-  fast: { hp: 2, speed: 220, score: 150, coins: 7, fireRate: 0.8, size: 64 },
-  tank: { hp: 6, speed: 80, score: 250, coins: 12, fireRate: 0, size: 100 },
-  shooter: { hp: 3, speed: 100, score: 200, coins: 10, fireRate: 1.8, size: 64 },
-  elite: { hp: 10, speed: 140, score: 500, coins: 25, fireRate: 1.2, size: 90 },
+  basic: { hp: 4, speed: 120, score: 100, coins: 5, fireRate: 0, size: 56 },
+  fast: { hp: 3, speed: 220, score: 150, coins: 7, fireRate: 0.8, size: 64 },
+  tank: { hp: 18, speed: 80, score: 250, coins: 12, fireRate: 0, size: 100 },
+  shooter: { hp: 6, speed: 100, score: 200, coins: 10, fireRate: 1.8, size: 64 },
+  elite: { hp: 25, speed: 140, score: 500, coins: 25, fireRate: 1.2, size: 90 },
 }
 
 const PLAYER_COLLISION_RADIUS = 35
@@ -425,7 +425,7 @@ export class GameEngine {
     const p = this.player
     if (!p.alive) return
     const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
-    const count = Math.max(2, Math.floor(speed / 80))
+    const count = Math.max(1, Math.floor(speed / 120))
     for (let i = 0; i < count; i++) {
       this.particles.push({
         x: p.x + rand(-8, 8),
@@ -808,7 +808,7 @@ export class GameEngine {
   }
 
   private updateParticles(dt: number): void {
-    const maxParticles = this.bossActive ? 600 : 400
+    const maxParticles = this.bossActive ? 300 : 200
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i]
       p.x += p.vx * dt
@@ -1215,7 +1215,7 @@ export class GameEngine {
     }
   }
 
-  private emitExplosion(x: number, y: number, color: string, count = 15): void {
+  private emitExplosion(x: number, y: number, color: string, count = 8): void {
     for (let i = 0; i < count; i++) {
       const angle = rand(0, PI2)
       const speed = rand(40, 220)
@@ -1235,7 +1235,7 @@ export class GameEngine {
 
   private emitBigExplosion(x: number, y: number, color: string): void {
     const colors = [color, '#ffffff', '#ffd700', '#ff4400', '#ffaa00']
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 16; i++) {
       const angle = rand(0, PI2)
       const speed = rand(50, 300)
       this.particles.push({
@@ -1250,7 +1250,7 @@ export class GameEngine {
         type: 'explosion',
       })
     }
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 6; i++) {
       const angle = rand(0, PI2)
       const speed = rand(20, 120)
       this.particles.push({
@@ -1269,7 +1269,7 @@ export class GameEngine {
   }
 
   private emitSparks(x: number, y: number, color: string): void {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       const angle = rand(0, PI2)
       const speed = rand(80, 280)
       this.particles.push({
@@ -1287,7 +1287,7 @@ export class GameEngine {
   }
 
   private emitShieldHit(x: number, y: number): void {
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 8; i++) {
       const angle = rand(0, PI2)
       const speed = rand(60, 200)
       this.particles.push({
@@ -1305,7 +1305,7 @@ export class GameEngine {
   }
 
   private emitCollectEffect(x: number, y: number, color: string): void {
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 10; i++) {
       const angle = rand(0, PI2)
       const speed = rand(40, 130)
       this.particles.push({

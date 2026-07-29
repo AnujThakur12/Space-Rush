@@ -43,32 +43,37 @@ export function GameScreen({ engine, onRestart, onMenu, onTogglePause }: GameScr
       <HUD />
       <Notifications />
       <TouchControls />
-      {/* Pause button: top-right with safe padding, outside score area */}
+      {/* Pause button: top-center, clear of corner panels */}
       <button
         onClick={onTogglePause}
         style={{
           position: 'fixed',
-          top: 'max(12px, env(safe-area-inset-top, 12px))',
-          right: 'max(12px, env(safe-area-inset-right, 12px))',
+          top: 'max(8px, env(safe-area-inset-top, 8px))',
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 25,
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          color: '#fff',
-          fontSize: 18,
+          width: 44,
+          height: 34,
+          borderRadius: 6,
+          background: 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: 13,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 5,
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           pointerEvents: 'auto',
+          fontFamily: "'Segoe UI', system-ui, sans-serif",
+          fontWeight: 600,
+          letterSpacing: '1px',
         }}
         aria-label="Pause"
       >
-        ⏸
+        II PAUSE
       </button>
 
       {screen === 'gameover' && engine.gameOver && (

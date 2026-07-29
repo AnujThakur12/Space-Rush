@@ -38,7 +38,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, p: Player, time: numbe
   const flameLen = (20 + speed * 0.04) * engineGlow
 
   ctx.shadowColor = '#0088ff'
-  ctx.shadowBlur = 20
+  ctx.shadowBlur = 10
   ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
 
   if (p.shield > 0) {
@@ -62,7 +62,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, p: Player, time: numbe
   flameGrad.addColorStop(1, `rgba(255, 20, 0, 0)`)
   ctx.fillStyle = flameGrad
   ctx.shadowColor = '#ff6600'
-  ctx.shadowBlur = 25
+  ctx.shadowBlur = 12
 
   const flameW = drawW * 0.2
   ctx.beginPath()
@@ -74,7 +74,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, p: Player, time: numbe
 
   const innerFlame = flameLen * 0.5
   ctx.shadowColor = '#ffcc00'
-  ctx.shadowBlur = 35
+  ctx.shadowBlur = 15
   const innerGrad = ctx.createLinearGradient(0, drawH / 2, 0, drawH / 2 + innerFlame)
   innerGrad.addColorStop(0, `rgba(255, 220, 100, ${0.8 * engineGlow})`)
   innerGrad.addColorStop(0.5, `rgba(255, 180, 50, ${0.4 * engineGlow})`)
@@ -134,10 +134,10 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, time: number)
 
   if (flash) {
     ctx.shadowColor = '#ffffff'
-    ctx.shadowBlur = 30
+    ctx.shadowBlur = 12
   } else {
     ctx.shadowColor = glowColor
-    ctx.shadowBlur = 15 * pulse
+    ctx.shadowBlur = 6 * pulse
   }
 
   ctx.drawImage(img, -e.width / 2, -e.height / 2, e.width, e.height)
@@ -179,7 +179,7 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: Boss, time: number
   const drawH = img.height * SCALE * 0.6
 
   ctx.shadowColor = phaseColor
-  ctx.shadowBlur = 30
+  ctx.shadowBlur = 12
   ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
 
   const chargePulse = 0.08 + Math.sin(time * 3) * 0.04
@@ -214,33 +214,32 @@ export function drawBullet(ctx: CanvasRenderingContext2D, b: Bullet) {
       const img = spriteManager.get('laser_green_shot')
       if (img) {
         ctx.shadowColor = '#00ff88'
-        ctx.shadowBlur = 25
+        ctx.shadowBlur = 10
         ctx.drawImage(img, -12, -16, 24, 32)
         ctx.shadowBlur = 0
-        ctx.fillStyle = 'rgba(0, 255, 136, 0.3)'
         ctx.fillRect(-4, -20, 8, 40)
       }
     } else {
       ctx.shadowColor = '#00ccff'
-      ctx.shadowBlur = 15
+      ctx.shadowBlur = 6
       ctx.fillStyle = '#00ccff'
       const bw = 3
       const bh = 10 * stretch
       ctx.fillRect(-bw / 2, -bh, bw, bh)
-      ctx.shadowBlur = 25
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.4)'
+      ctx.globalAlpha = 0.3
       ctx.fillRect(-bw / 2 - 1, -bh - 2, bw + 2, bh + 4)
+      ctx.globalAlpha = 1
     }
   } else {
     ctx.shadowColor = '#ff4444'
-    ctx.shadowBlur = 12
+    ctx.shadowBlur = 5
     ctx.fillStyle = '#ff4444'
     const bw = 4
     const bh = 8 * stretch
     ctx.fillRect(-bw / 2, -bh, bw, bh)
-    ctx.shadowBlur = 20
-    ctx.fillStyle = 'rgba(255, 68, 68, 0.3)'
+    ctx.globalAlpha = 0.3
     ctx.fillRect(-bw / 2, -bh - 1, bw, bh + 2)
+    ctx.globalAlpha = 1
   }
 
   ctx.restore()
@@ -283,7 +282,7 @@ export function drawPowerupIcon(ctx: CanvasRenderingContext2D, x: number, y: num
   const pulse = 0.8 + Math.sin(bobTimer * 4) * 0.2
 
   ctx.shadowColor = glowColor
-  ctx.shadowBlur = 25 * pulse
+  ctx.shadowBlur = 10 * pulse
 
   const w = img.width * 1.8
   const h = img.height * 1.8
@@ -311,7 +310,7 @@ export function drawMuzzleFlash(ctx: CanvasRenderingContext2D, x: number, y: num
   grad.addColorStop(1, 'rgba(0, 200, 255, 0)')
   ctx.fillStyle = grad
   ctx.shadowColor = '#00ccff'
-  ctx.shadowBlur = 30
+  ctx.shadowBlur = 12
   ctx.beginPath()
   ctx.arc(0, -r * 2, r * 3, 0, Math.PI * 2)
   ctx.fill()
@@ -343,7 +342,7 @@ export function drawEngineTrail(ctx: CanvasRenderingContext2D, x: number, y: num
   grad.addColorStop(1, 'rgba(255, 60, 0, 0)')
   ctx.fillStyle = grad
   ctx.shadowColor = '#ff4400'
-  ctx.shadowBlur = 12
+  ctx.shadowBlur = 6
   ctx.beginPath()
   ctx.moveTo(x - 8, y)
   ctx.lineTo(x + 8, y)

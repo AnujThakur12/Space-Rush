@@ -61,7 +61,7 @@ interface Asteroid {
   shape: number[]
 }
 
-const STAR_COUNTS = [120, 80, 50, 25]
+const STAR_COUNTS = [60, 40, 25, 12]
 const STAR_SPEEDS = [0.12, 0.35, 0.8, 1.6]
 const STAR_SIZES = [0.3, 0.6, 1.2, 2.2]
 const STAR_BRIGHTNESS = [0.2, 0.4, 0.7, 1.0]
@@ -140,7 +140,7 @@ function init(cw: number, ch: number) {
   ]
 
   dustParticles = []
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 40; i++) {
     dustParticles.push({
       x: Math.random() * cw,
       y: Math.random() * ch,
@@ -202,11 +202,9 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
     if (n.y < -n.r) n.y = ch + n.r
     if (n.y > ch + n.r) n.y = -n.r
 
-    const pulseOpacity = n.opacity + Math.sin(time * 0.1 + nebulae.indexOf(n)) * 0.008
     const grd2 = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r)
-    grd2.addColorStop(0, `rgba(${n.color}, ${pulseOpacity + 0.02})`)
-    grd2.addColorStop(0.4, `rgba(${n.color}, ${pulseOpacity})`)
-    grd2.addColorStop(0.7, `rgba(${n.color}, ${pulseOpacity * 0.5})`)
+    grd2.addColorStop(0, `rgba(${n.color}, ${n.opacity + 0.02})`)
+    grd2.addColorStop(0.4, `rgba(${n.color}, ${n.opacity})`)
     grd2.addColorStop(1, `rgba(${n.color}, 0)`)
     ctx.fillStyle = grd2
     ctx.beginPath()
@@ -247,18 +245,8 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
 
   for (const p of planets) {
     p.rotation += dt * 0.15
-
     ctx.save()
-
-    ctx.shadowColor = p.atmosphere.replace('0.1', '0.2').replace('0.12', '0.25').replace('0.08', '0.15')
-    ctx.shadowBlur = 40
-
-    const grd3 = ctx.createRadialGradient(
-      p.x - p.r * 0.3 * Math.cos(p.rotation * 0.5),
-      p.y - p.r * 0.3 * Math.sin(p.rotation * 0.5),
-      0,
-      p.x, p.y, p.r
-    )
+    const grd3 = ctx.createRadialGradient(p.x - p.r * 0.3, p.y - p.r * 0.3, 0, p.x, p.y, p.r)
     grd3.addColorStop(0, lighten(p.color, 40))
     grd3.addColorStop(0.5, lighten(p.color, 10))
     grd3.addColorStop(0.8, p.color)
@@ -267,58 +255,16 @@ export function drawBackground(ctx: CanvasRenderingContext2D, cw: number, ch: nu
     ctx.beginPath()
     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
     ctx.fill()
-
-    ctx.shadowBlur = 0
     for (const c of p.craters) {
-      const cx = p.x + c.x + Math.sin(p.rotation * 0.3 + c.x * 0.1) * 1
-      const cy = p.y + c.y + Math.cos(p.rotation * 0.3 + c.y * 0.1) * 1
       ctx.fillStyle = darken(p.color, 25)
       ctx.beginPath()
-      ctx.arc(cx, cy, c.r, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = darken(p.color, 10)
-      ctx.beginPath()
-      ctx.arc(cx + 1, cy + 1, c.r * 0.5, 0, Math.PI * 2)
+      ctx.arc(p.x + c.x, p.y + c.y, c.r, 0, Math.PI * 2)
       ctx.fill()
     }
-
-    ctx.fillStyle = p.cloudColor
-    ctx.beginPath()
-    ctx.ellipse(p.x + Math.sin(p.rotation) * p.r * 0.3, p.y - p.r * 0.2, p.r * 0.5, p.r * 0.15, p.rotation * 0.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.beginPath()
-    ctx.ellipse(p.x + Math.sin(p.rotation + 2) * p.r * 0.25, p.y + p.r * 0.15, p.r * 0.35, p.r * 0.1, p.rotation * 0.3, 0, Math.PI * 2)
-    ctx.fill()
-
-    if (p.rings) {
-      ctx.strokeStyle = 'rgba(200, 160, 120, 0.2)'
-      ctx.lineWidth = 3
-      ctx.beginPath()
-      ctx.ellipse(p.x, p.y, p.r * 1.9, p.r * 0.28, 0.3, 0, Math.PI * 2)
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(200, 160, 120, 0.1)'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.ellipse(p.x, p.y, p.r * 2.2, p.r * 0.32, 0.3, 0, Math.PI * 2)
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(200, 160, 120, 0.06)'
-      ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.ellipse(p.x, p.y, p.r * 2.5, p.r * 0.36, 0.3, 0, Math.PI * 2)
-      ctx.stroke()
-    }
-
-    ctx.shadowBlur = 0
     ctx.fillStyle = p.atmosphere
     ctx.beginPath()
     ctx.arc(p.x, p.y, p.r * 1.15, 0, Math.PI * 2)
     ctx.fill()
-
-    ctx.fillStyle = 'rgba(255,255,255,0.015)'
-    ctx.beginPath()
-    ctx.arc(p.x - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.12, 0, Math.PI * 2)
-    ctx.fill()
-
     ctx.restore()
   }
 
