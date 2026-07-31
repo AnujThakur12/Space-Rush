@@ -51,6 +51,7 @@ export class GameEngine {
   levelTransitionTimer = 0
   slowMotionTimer = 0
   hitStopTimer = 0
+  levelTime = 0
   screenShakeX = 0
   screenShakeY = 0
   screenShakeIntensity = 0
@@ -126,6 +127,7 @@ export class GameEngine {
     this.enemyTimer = 0
     this.difficulty = 1
     this.bossWarningShown = false
+    this.levelTime = 0
 
     this.createPlayer()
     this.enemies = []
@@ -145,6 +147,11 @@ export class GameEngine {
   startLevelTransition(): void {
     this.levelTransition = true
     this.levelTransitionTimer = 2.5
+    this.levelTime = 0
+  }
+
+  private slowMo(dt: number): number {
+    return this.slowMotionTimer > 0 ? dt * 0.4 : dt
   }
 
   start(dt: number): void {
@@ -163,11 +170,11 @@ export class GameEngine {
 
     if (this.slowMotionTimer > 0) {
       this.slowMotionTimer -= dt
-      dt *= 0.4
       if (this.slowMotionTimer <= 0) this.slowMotionTimer = 0
     }
 
     this.gameTime += dt
+    this.levelTime += dt
     this.updateStars(dt)
 
     if (this.levelTransition) {
@@ -426,8 +433,10 @@ export class GameEngine {
   private updateEnemies(dt: number): void {
     if (this.bossActive) return
 
-    this.difficulty = 1 + (this.currentLevel - 1) * 0.2
-    const spawnRate = Math.max(0.3, 1.3 / this.difficulty)
+    dt = this.slowMo(dt)
+
+    this.difficulty = 1 + (this.currentLevel - 1) * 0.2 + this.levelTime * 0.01
+    const spawnRate = Math.max(0.25, 1.3 / this.difficulty)
 
     this.enemyTimer -= dt
     this.sideSpawnTimer -= dt
@@ -497,7 +506,7 @@ export class GameEngine {
   }
 
   private spawnEnemy(): void {
-    const lvl = this.currentLevel
+    const lvl = Math.min(this.currentLevel + Math.floor(this.levelTime / 25), 12)
     const types: EnemyType[] = ['basic', 'basic']
     if (lvl >= 2) types.push('fast')
     if (lvl >= 3) types.push('tank', 'shooter')
@@ -547,7 +556,8 @@ export class GameEngine {
     const types: EnemyType[] = ['fast', 'shooter', 'elite']
     const type = types[Math.floor(Math.random() * types.length)]
     const def = ENEMY_TYPES[type]
-    const lvlMult = 1 + (this.currentLevel - 1) * 0.12
+    const lvl = Math.min(this.currentLevel + Math.floor(this.levelTime / 25), 12)
+    const lvlMult = 1 + (lvl - 1) * 0.12
 
     this.enemies.push({
       x,
@@ -604,6 +614,8 @@ export class GameEngine {
 
   private updateBoss(dt: number): void {
     if (!this.boss || !this.boss.alive) return
+
+    dt = this.slowMo(dt)
 
     const b = this.boss
 
@@ -759,8 +771,9 @@ export class GameEngine {
         continue
       }
 
-      b.x += b.vx * dt
-      b.y += b.vy * dt
+      const bdt = !b.isPlayer ? this.slowMo(dt) : dt
+      b.x += b.vx * bdt
+      b.y += b.vy * bdt
       b.timer -= dt
 
       if (b.timer <= 0 || b.x < -80 || b.x > this.canvasW + 80 || b.y < -80 || b.y > this.canvasH + 80) {
@@ -1123,7 +1136,8 @@ export class GameEngine {
   }
 
   private maybeDropPowerup(x: number, y: number): void {
-    if (Math.random() < 0.12) {
+    const chance = Math.min(0.12, 0.04 + (this.currentLevel - 1) * 0.02 + this.levelTime * 0.0003)
+    if (Math.random() < chance) {
       const weights = [35, 20, 15, 10, 10, 10]
       const total = weights.reduce((a, b) => a + b)
       let r = Math.random() * total
