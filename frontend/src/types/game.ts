@@ -35,6 +35,7 @@ export interface Player {
   speed: number
   hp: number
   maxHp: number
+  damage: number
   shield: number
   maxShield: number
   weaponLevel: number

@@ -1,6 +1,7 @@
 import { useGameStore } from '../store/gameStore'
 import { audioManager } from './AudioManager'
 import { inputManager } from './InputManager'
+import { storageManager } from './StorageManager'
 import type {
   Player, Enemy, Bullet, Boss, PowerUp, Particle,
   EnemyType, PowerUpType, WeaponType, PlaneType, Vec2,
@@ -96,22 +97,35 @@ export class GameEngine {
   }
 
   private createPlayer(): void {
+    const planeId = storageManager.getSelectedPlane()
+    const stats = PLANE_STATS[planeId] || PLANE_STATS['falcon']
+    const up = (key: string) => storageManager.getUpgradeLevel(key)
+    const health = stats.health + up('health')
+    const damage = stats.damage + up('damage')
+    const speed = stats.speed + up('speed') * 10
+    const fireRate = Math.max(0.06, stats.fireRate - up('fireRate') * 0.005)
     this.player = {
       x: this.canvasW / 2, y: this.canvasH - 120, z: 0,
       width: 90, height: 105,
-      speed: 300, hp: 5, maxHp: 5, shield: 0, maxShield: 3,
+      speed, hp: health, maxHp: health, damage,
+      shield: 0, maxShield: 3,
       weaponLevel: 1, weaponType: 'spread',
-      fireTimer: 0, fireRate: 0.15,
+      fireTimer: 0, fireRate,
       invincible: 0,
       combo: 0, maxCombo: 0, comboMultiplier: 1, comboTimer: 0,
       score: 0, xp: 0, level: 1, kills: 0,
       vx: 0, vy: 0, targetVx: 0, targetVy: 0,
       alive: true,
-      plane: 'default' as PlaneType,
+      plane: planeId as PlaneType,
       upgradeLevels: {},
       activePowerups: {},
       bombs: 1,
     }
+  }
+
+  private applyArmor(dmg: number): number {
+    const armor = storageManager.getUpgradeLevel('armor')
+    return Math.max(1, dmg - armor * 0.1)
   }
 
   resetGame(): void {
@@ -311,7 +325,7 @@ export class GameEngine {
     const by = p.y - p.height / 2 - 10
 
     const bulletSpeed = 650
-    const damage = 10 + (p.weaponLevel - 1) * 2
+    const damage = p.damage + (p.weaponLevel - 1) * 2
 
     const bulletCount = this.getWeaponBulletCount()
     const spreadAngle = this.getWeaponSpread()
@@ -924,7 +938,7 @@ export class GameEngine {
         this.bullets.splice(i, 1)
 
         if (p.alive && p.invincible <= 0) {
-          const dmg = Math.max(1, b.damage)
+          const dmg = this.applyArmor(Math.max(1, b.damage))
           if (p.shield > 0) {
             p.shield = Math.max(0, p.shield - dmg)
             this.emitShieldHit(p.x, p.y)
@@ -955,7 +969,7 @@ export class GameEngine {
       const enemyR = e.width / 2
       if (this.circleCircle({ x: p.x, y: p.y, r: PLAYER_COLLISION_RADIUS }, { x: e.x, y: e.y, r: enemyR })) {
         if (p.alive && p.invincible <= 0) {
-          p.hp -= 2
+          p.hp -= this.applyArmor(2)
           p.invincible = 0.5
           this.emitBigExplosion(e.x, e.y, '#ff4400')
           this.screenShakeIntensity = 12
@@ -974,7 +988,7 @@ export class GameEngine {
     if (this.bossActive && this.boss && this.boss.alive && this.boss.deathTimer <= 0) {
       if (this.circleCircle({ x: p.x, y: p.y, r: PLAYER_COLLISION_RADIUS }, { x: this.boss.x, y: this.boss.y, r: 70 })) {
         if (p.alive && p.invincible <= 0) {
-          p.hp -= 3
+          p.hp -= this.applyArmor(3)
           p.invincible = 0.5
           this.screenShakeIntensity = 15
           this.flashTimer = 0.3
@@ -1199,7 +1213,12 @@ export class GameEngine {
       case 'rapid':
         p.weaponType = 'rapid'
         p.fireRate = 0.07
-        setTimeout(() => { if (p.weaponType === 'rapid') { p.weaponType = 'spread'; p.fireRate = 0.15 } }, 8000)
+        setTimeout(() => {
+          if (p.weaponType === 'rapid') {
+            p.weaponType = 'spread'
+            p.fireRate = PLANE_STATS[storageManager.getSelectedPlane()]?.fireRate ?? 0.15
+          }
+        }, 8000)
         this.addNotification('RAPID FIRE', '#ffcc00')
         break
       case 'slowmo':

@@ -52,6 +52,8 @@ export interface GameStore {
   profile: UserProfile | null
   score: number
   highScore: number
+  coins: number
+  lastNewHigh: boolean
   level: number
   playerHp: number
   playerMaxHp: number
@@ -97,6 +99,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   profile: null,
   score: 0,
   highScore: loadHighScore(),
+  coins: 0,
+  lastNewHigh: false,
   level: 1,
   playerHp: 5,
   playerMaxHp: 5,
@@ -178,6 +182,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   reset: () =>
     set({
       score: 0,
+      lastNewHigh: false,
       level: 1,
       playerHp: 5,
       playerMaxHp: 5,

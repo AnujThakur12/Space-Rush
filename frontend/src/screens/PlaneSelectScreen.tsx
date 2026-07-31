@@ -26,6 +26,8 @@ export function PlaneSelectScreen() {
     } else if (storageManager.spendCoins(plane.cost)) {
       storageManager.unlockPlane(plane.id)
       storageManager.selectPlane(plane.id)
+      useGameStore.getState().setUnlockedPlanes(storageManager.getUnlockedPlanes())
+      useGameStore.setState({ coins: storageManager.getCoins() })
       setSelected(plane.id)
       setMsg(`${plane.label} unlocked!`)
     } else {

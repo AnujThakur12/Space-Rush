@@ -60,6 +60,15 @@ export class StorageManager {
     this.set(`upgrade_${key}`, level)
   }
 
+  getUpgrades(): Record<string, number> {
+    const out: Record<string, number> = {}
+    for (const k of ['health', 'damage', 'speed', 'fireRate', 'armor']) {
+      const v = this.getUpgradeLevel(k)
+      if (v > 0) out[k] = v
+    }
+    return out
+  }
+
   getUnlockedPlanes(): PlaneType[] {
     return this.get('unlockedPlanes') || ['default']
   }
@@ -187,7 +196,7 @@ export class StorageManager {
         coins: this.getCoins(),
         unlockedPlanes: this.getUnlockedPlanes(),
         selectedPlane: this.getSelectedPlane(),
-        upgrades: this.get('upgrades') || {},
+        upgrades: this.getUpgrades(),
       }
       const res = await fetch(`${API_URL}/save`, {
         method: 'POST',
@@ -210,7 +219,11 @@ export class StorageManager {
       if (data.coins) this.set('coins', data.coins)
       if (data.unlockedPlanes) this.set('unlockedPlanes', data.unlockedPlanes)
       if (data.selectedPlane) this.set('selectedPlane', data.selectedPlane)
-      if (data.upgrades) this.set('upgrades', data.upgrades)
+      if (data.upgrades) {
+        for (const [k, v] of Object.entries(data.upgrades)) {
+          this.setUpgradeLevel(k, Number(v))
+        }
+      }
       return true
     } catch { return false }
   }

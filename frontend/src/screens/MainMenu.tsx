@@ -17,7 +17,7 @@ const menuItems = [
 export function MainMenu({ onStart }: MainMenuProps) {
   const setScreen = useGameStore((s) => s.setScreen)
   const highScore = useGameStore((s) => s.highScore)
-  const coins = useGameStore((s) => s.stats.totalScore)
+  const coins = useGameStore((s) => s.coins)
 
   return (
     <div style={{
@@ -42,10 +42,14 @@ export function MainMenu({ onStart }: MainMenuProps) {
       </div>
 
       {highScore > 0 && (
-        <div style={{ color: '#ffd700', fontSize: 13, marginBottom: 16 }}>
+        <div style={{ color: '#ffd700', fontSize: 13, marginBottom: 8 }}>
           High Score: {highScore.toLocaleString()}
         </div>
       )}
+
+      <div style={{ color: '#ffd700', fontSize: 13, marginBottom: 16 }}>
+        Coins: {coins.toLocaleString()}
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {menuItems.map((item) => (

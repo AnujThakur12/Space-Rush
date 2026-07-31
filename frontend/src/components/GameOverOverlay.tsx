@@ -7,9 +7,8 @@ interface GameOverOverlayProps {
 
 export function GameOverOverlay({ onRestart, onMenu }: GameOverOverlayProps) {
   const score = useGameStore((s) => s.score)
-  const highScore = useGameStore((s) => s.highScore)
   const level = useGameStore((s) => s.level)
-  const isNewHigh = score > highScore
+  const isNewHigh = useGameStore((s) => s.lastNewHigh)
 
   return (
     <div style={{

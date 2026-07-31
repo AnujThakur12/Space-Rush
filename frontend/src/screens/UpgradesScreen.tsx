@@ -27,6 +27,7 @@ export function UpgradesScreen() {
     const cost = upg.cost * (current + 1)
     if (storageManager.spendCoins(cost)) {
       storageManager.setUpgradeLevel(upg.key, current + 1)
+      useGameStore.setState({ coins: storageManager.getCoins() })
       setLevels((prev) => ({ ...prev, [upg.key]: current + 1 }))
       setCoins(storageManager.getCoins())
       setMsg(`${upg.label} upgraded to level ${current + 1}!`)

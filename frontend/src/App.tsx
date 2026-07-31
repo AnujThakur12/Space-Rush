@@ -27,11 +27,15 @@ export default function App() {
       engineRef.current = new GameEngine()
       engineRef.current.init()
       audioManager.init()
-      useGameStore.getState().setUnlockedPlanes(storageManager.getUnlockedPlanes())
-      const hs = storageManager.getHighScore()
-      if (hs > 0) useGameStore.setState({ highScore: hs })
     }
     return engineRef.current
+  }, [])
+
+  const hydrateStore = useCallback(() => {
+    useGameStore.getState().setUnlockedPlanes(storageManager.getUnlockedPlanes())
+    useGameStore.setState({ coins: storageManager.getCoins() })
+    const hs = storageManager.getHighScore()
+    if (hs > 0) useGameStore.setState({ highScore: hs })
   }, [])
 
   const stopLoop = useCallback(() => {
@@ -62,11 +66,13 @@ export default function App() {
       if (engine.gameOver && currentScreen !== 'gameover') {
         const finalScore = engine.score
         const hs = storageManager.getHighScore()
-        if (finalScore > hs) {
+        const wasNewHigh = finalScore > hs
+        if (wasNewHigh) {
           storageManager.setHighScore(finalScore)
           useGameStore.setState({ highScore: finalScore })
         }
         storageManager.addCoins(Math.floor(finalScore / 10))
+        useGameStore.setState({ coins: storageManager.getCoins(), lastNewHigh: wasNewHigh })
         storageManager.addLocalLeaderboard({
           rank: 0,
           name: storageManager.getUsername() || 'Pilot',
@@ -106,8 +112,9 @@ export default function App() {
   }, [setScreen])
 
   useEffect(() => {
+    hydrateStore()
     return () => stopLoop()
-  }, [stopLoop])
+  }, [hydrateStore, stopLoop])
 
   const isGameScreen = screen === 'playing' || screen === 'paused' || screen === 'gameover'
   const isMenu = screen === 'menu' || screen === 'settings' || screen === 'plane_select' ||
