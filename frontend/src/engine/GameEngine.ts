@@ -19,11 +19,11 @@ const PLANE_STATS: Record<string, { speed: number; health: number; damage: numbe
 }
 
 const ENEMY_TYPES: Record<EnemyType, { hp: number; speed: number; score: number; coins: number; fireRate: number; size: number }> = {
-  basic: { hp: 4, speed: 120, score: 100, coins: 5, fireRate: 0, size: 56 },
-  fast: { hp: 3, speed: 220, score: 150, coins: 7, fireRate: 0.8, size: 64 },
-  tank: { hp: 18, speed: 80, score: 250, coins: 12, fireRate: 0, size: 100 },
-  shooter: { hp: 6, speed: 100, score: 200, coins: 10, fireRate: 1.8, size: 64 },
-  elite: { hp: 25, speed: 140, score: 500, coins: 25, fireRate: 1.2, size: 90 },
+  basic: { hp: 20, speed: 120, score: 100, coins: 5, fireRate: 0, size: 56 },
+  fast: { hp: 16, speed: 220, score: 150, coins: 7, fireRate: 0.8, size: 64 },
+  tank: { hp: 45, speed: 80, score: 250, coins: 12, fireRate: 0, size: 100 },
+  shooter: { hp: 25, speed: 100, score: 200, coins: 10, fireRate: 1.8, size: 64 },
+  elite: { hp: 55, speed: 140, score: 500, coins: 25, fireRate: 1.2, size: 90 },
 }
 
 const PLAYER_COLLISION_RADIUS = 35
@@ -57,10 +57,6 @@ export class GameEngine {
   flashTimer = 0
   flashColor = ''
   flashIntensity = 0
-  muzzleFlashTimer = 0
-  muzzleX = 0
-  muzzleY = 0
-  muzzleAngle = -Math.PI / 2
 
   private lastTime = 0
   private enemyTimer = 0
@@ -130,7 +126,6 @@ export class GameEngine {
     this.enemyTimer = 0
     this.difficulty = 1
     this.bossWarningShown = false
-    this.muzzleFlashTimer = 0
 
     this.createPlayer()
     this.enemies = []
@@ -194,7 +189,6 @@ export class GameEngine {
 
     this.updateScreenShake(dt)
     this.updateFlash(dt)
-    if (this.muzzleFlashTimer > 0) this.muzzleFlashTimer -= dt
     this.updateStore()
   }
 
@@ -334,10 +328,6 @@ export class GameEngine {
       this.bullets.push(b)
     }
 
-    this.muzzleFlashTimer = 0.1
-    this.muzzleX = bx
-    this.muzzleY = by
-    this.muzzleAngle = -Math.PI / 2
     audioManager.playSfxSynth('shoot')
   }
 
@@ -437,22 +427,22 @@ export class GameEngine {
     if (this.bossActive) return
 
     this.difficulty = 1 + (this.currentLevel - 1) * 0.2
-    const spawnRate = Math.max(0.08, 0.6 / this.difficulty)
+    const spawnRate = Math.max(0.3, 1.3 / this.difficulty)
 
     this.enemyTimer -= dt
     this.sideSpawnTimer -= dt
 
     if (this.enemyTimer <= 0) {
-      const burst = Math.random() < 0.4 ? 2 + Math.floor(Math.random() * 2) : 1
+      const burst = Math.random() < 0.12 ? 2 : 1
       for (let i = 0; i < burst; i++) {
         setTimeout(() => this.spawnEnemy(), i * 80)
       }
       this.enemyTimer = spawnRate + rand(-0.1, 0.1)
     }
 
-    if (this.sideSpawnTimer <= 0 && this.currentLevel >= 3) {
+    if (this.sideSpawnTimer <= 0 && this.currentLevel >= 4) {
       this.spawnSideEnemy()
-      this.sideSpawnTimer = 2 + Math.random() * 2
+      this.sideSpawnTimer = 3.5 + Math.random() * 2
     }
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {

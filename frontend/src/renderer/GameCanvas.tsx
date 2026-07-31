@@ -3,7 +3,7 @@ import type { GameEngine } from '../engine/GameEngine'
 import { useGameStore } from '../store/gameStore'
 import { spriteManager } from '../engine/SpriteManager'
 import { drawBackground } from './Background'
-import { drawPlayer, drawEnemy, drawBoss, drawBullet, drawPowerupIcon, drawMuzzleFlash, drawEngineTrail } from './Sprites'
+import { drawPlayer, drawEnemy, drawBoss, drawBullet, drawPowerupIcon, drawEngineTrail } from './Sprites'
 import { drawParticles } from './Particles'
 import { drawFlash } from './effects'
 
@@ -55,10 +55,6 @@ export function GameCanvas({ engine }: GameCanvasProps) {
 
     for (const b of engine.bullets) {
       if (b.alive) drawBullet(ctx, b)
-    }
-
-    if (engine.muzzleFlashTimer > 0) {
-      drawMuzzleFlash(ctx, engine.muzzleX, engine.muzzleY, engine.muzzleAngle, engine.muzzleFlashTimer / 0.1)
     }
 
     for (const e of engine.enemies) {

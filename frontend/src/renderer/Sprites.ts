@@ -297,39 +297,6 @@ export function drawPowerupIcon(ctx: CanvasRenderingContext2D, x: number, y: num
   ctx.restore()
 }
 
-export function drawMuzzleFlash(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, intensity: number) {
-  if (intensity <= 0.01) return
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(angle)
-
-  const r = 14 * intensity
-  const grad = ctx.createRadialGradient(0, -r * 2, 0, 0, -r * 2, r * 4)
-  grad.addColorStop(0, `rgba(255, 255, 255, ${intensity})`)
-  grad.addColorStop(0.3, `rgba(0, 200, 255, ${intensity * 0.5})`)
-  grad.addColorStop(1, 'rgba(0, 200, 255, 0)')
-  ctx.fillStyle = grad
-  ctx.shadowColor = '#00ccff'
-  ctx.shadowBlur = 12
-  ctx.beginPath()
-  ctx.arc(0, -r * 2, r * 3, 0, Math.PI * 2)
-  ctx.fill()
-
-  ctx.shadowBlur = 0
-  ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.5})`
-  for (let i = 0; i < 5; i++) {
-    const a = -Math.PI / 2 + (i - 2) * 0.25
-    ctx.beginPath()
-    ctx.moveTo(0, -r)
-    ctx.lineTo(Math.cos(a - 0.15) * r * 0.5, -r + Math.sin(a - 0.15) * r * 0.5)
-    ctx.lineTo(Math.cos(a + 0.15) * r * 0.5, -r + Math.sin(a + 0.15) * r * 0.5)
-    ctx.closePath()
-    ctx.fill()
-  }
-
-  ctx.restore()
-}
-
 export function drawEngineTrail(ctx: CanvasRenderingContext2D, x: number, y: number, vx: number, vy: number) {
   const speed = Math.sqrt(vx * vx + vy * vy)
   if (speed < 10) return
