@@ -6,9 +6,9 @@ import type { PlaneType } from '../types/game'
 const PLANES: { id: PlaneType; label: string; desc: string; speed: number; health: number; damage: number; cost: number }[] = [
   { id: 'default', label: 'Falcon', desc: 'Balanced all-rounder', speed: 300, health: 5, damage: 10, cost: 0 },
   { id: 'eagle', label: 'Eagle', desc: 'Extra health and armor', speed: 340, health: 6, damage: 12, cost: 500 },
-  { id: 'raptor', label: 'Raptor', desc: 'High damage output', speed: 320, health: 5.5, damage: 14, cost: 1500 },
-  { id: 'phantom', label: 'Phantom', desc: 'Fast and durable', speed: 360, health: 6.5, damage: 15, cost: 5000 },
-  { id: 'stealth-x', label: 'Stealth-X', desc: 'Extreme speed, power and durability', speed: 400, health: 7, damage: 18, cost: 15000 },
+  { id: 'raptor', label: 'Raptor', desc: 'High damage output', speed: 320, health: 7, damage: 14, cost: 1500 },
+  { id: 'phantom', label: 'Phantom', desc: 'Fast and durable', speed: 360, health: 8, damage: 15, cost: 5000 },
+  { id: 'stealth-x', label: 'Stealth-X', desc: 'Extreme speed, power and durability', speed: 400, health: 9, damage: 18, cost: 15000 },
 ]
 
 export function PlaneSelectScreen() {

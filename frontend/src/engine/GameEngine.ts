@@ -14,9 +14,9 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 const PLANE_STATS: Record<string, { speed: number; health: number; damage: number; fireRate: number; armor: number; label: string }> = {
   falcon: { speed: 300, health: 5, damage: 10, fireRate: 0.15, armor: 0, label: 'Falcon' },
   eagle: { speed: 340, health: 6, damage: 12, fireRate: 0.14, armor: 1, label: 'Eagle' },
-  raptor: { speed: 320, health: 5.5, damage: 14, fireRate: 0.13, armor: 2, label: 'Raptor' },
-  phantom: { speed: 360, health: 6.5, damage: 15, fireRate: 0.12, armor: 3, label: 'Phantom' },
-  'stealth-x': { speed: 400, health: 7, damage: 18, fireRate: 0.10, armor: 2, label: 'Stealth-X' },
+  raptor: { speed: 320, health: 7, damage: 14, fireRate: 0.13, armor: 2, label: 'Raptor' },
+  phantom: { speed: 360, health: 8, damage: 15, fireRate: 0.12, armor: 3, label: 'Phantom' },
+  'stealth-x': { speed: 400, health: 9, damage: 18, fireRate: 0.10, armor: 2, label: 'Stealth-X' },
 }
 
 const ENEMY_TYPES: Record<EnemyType, { hp: number; speed: number; score: number; coins: number; fireRate: number; size: number }> = {
