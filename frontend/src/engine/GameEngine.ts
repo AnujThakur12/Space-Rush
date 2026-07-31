@@ -236,11 +236,11 @@ export class GameEngine {
       const dx = input.touchTargetX - p.x
       const dy = input.touchTargetY - p.y
       const dist = Math.sqrt(dx * dx + dy * dy)
-      const followSpeed = 5
       if (dist > 1) {
+        const followSpeed = 12
         p.targetVx = dx * followSpeed
         p.targetVy = dy * followSpeed
-        const maxV = p.speed * 1.2
+        const maxV = p.speed * 3
         const v = Math.sqrt(p.targetVx * p.targetVx + p.targetVy * p.targetVy)
         if (v > maxV) {
           p.targetVx = (p.targetVx / v) * maxV
@@ -262,7 +262,8 @@ export class GameEngine {
       p.targetVy = moveY * p.speed
     }
 
-    const friction = 8
+    const touchActiveNow = !hasKBInput && input.touchTargetX !== null && input.touchTargetY !== null
+    const friction = touchActiveNow ? 14 : 8
     p.vx += (p.targetVx - p.vx) * friction * dt
     p.vy += (p.targetVy - p.vy) * friction * dt
 

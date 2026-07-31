@@ -7,7 +7,8 @@ interface TouchControlsProps {
   engine: GameEngine
 }
 
-const SHIP_TOUCH_RADIUS = 55
+const SHIP_TOUCH_RADIUS = 70
+const ANYWHERE_OFFSET_Y = -60
 
 export function TouchControls({ engine }: TouchControlsProps) {
   const screen = useGameStore((s) => s.screen)
@@ -17,11 +18,11 @@ export function TouchControls({ engine }: TouchControlsProps) {
 
   const [isTouchDevice, setIsTouchDevice] = useState(false)
 
-  const containerRef = useRef<HTMLDivElement>(null)
   const moveTouchId = useRef<number | null>(null)
   const fireTouchId = useRef<number | null>(null)
   const touchOffset = useRef({ x: 0, y: 0 })
-  const fireButtonTouch = useRef(false)
+  const engineRef = useRef(engine)
+  engineRef.current = engine
 
   useEffect(() => {
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
@@ -30,31 +31,44 @@ export function TouchControls({ engine }: TouchControlsProps) {
 
   useEffect(() => {
     if (!isTouchDevice) return
-    const el = containerRef.current
-    if (!el) return
-
-    const getCanvasScale = () => {
-      const cw = engine.canvasW || window.innerWidth
-      const ch = engine.canvasH || window.innerHeight
-      return { cw, ch }
-    }
 
     const screenToGame = (cx: number, cy: number) => {
-      const { cw, ch } = getCanvasScale()
-      const gameX = (cx / window.innerWidth) * cw
-      const gameY = (cy / window.innerHeight) * ch
-      return { x: gameX, y: gameY }
+      const eng = engineRef.current
+      const cw = eng.canvasW || window.innerWidth
+      const ch = eng.canvasH || window.innerHeight
+      return {
+        x: (cx / window.innerWidth) * cw,
+        y: (cy / window.innerHeight) * ch,
+      }
     }
 
     const isOnShip = (gx: number, gy: number) => {
-      const p = engine.player
+      const p = engineRef.current.player
       if (!p) return false
       const dx = gx - p.x
       const dy = gy - p.y
       return Math.sqrt(dx * dx + dy * dy) <= SHIP_TOUCH_RADIUS
     }
 
+    const isUiElement = (target: EventTarget | null): boolean => {
+      const el = target as HTMLElement | null
+      if (!el || !el.closest) return false
+      return !!el.closest('button, input, select, [data-ui]')
+    }
+
+    const setMoveTarget = (gx: number, gy: number) => {
+      const eng = engineRef.current
+      const pw2 = eng.player.width / 2
+      const ph2 = eng.player.height / 2
+      const cw = eng.canvasW || window.innerWidth
+      const ch = eng.canvasH || window.innerHeight
+      inputManager.state.touchTargetX = clamp(gx - touchOffset.current.x, pw2, cw - pw2)
+      inputManager.state.touchTargetY = clamp(gy - touchOffset.current.y, ph2, ch - ph2)
+      inputManager.state.touchActive = true
+    }
+
     const onTouchStart = (e: TouchEvent) => {
+      if (isUiElement(e.target)) return
       e.preventDefault()
       const mode = useGameStore.getState().settings.touchControlMode
 
@@ -62,33 +76,26 @@ export function TouchControls({ engine }: TouchControlsProps) {
         const t = e.changedTouches[i]
         const isRightSide = t.clientX > window.innerWidth / 2
 
-        if (isRightSide && fireTouchId.current === null) {
-          fireTouchId.current = t.identifier
-          inputManager.state.firing = true
+        if (moveTouchId.current === null) {
+          if (mode === 'drag') {
+            const gp = screenToGame(t.clientX, t.clientY)
+            if (!isOnShip(gp.x, gp.y)) continue
+            touchOffset.current = {
+              x: gp.x - engineRef.current.player.x,
+              y: gp.y - engineRef.current.player.y,
+            }
+          } else {
+            touchOffset.current = { x: 0, y: ANYWHERE_OFFSET_Y }
+          }
+          moveTouchId.current = t.identifier
+          const gp = screenToGame(t.clientX, t.clientY)
+          setMoveTarget(gp.x, gp.y)
           continue
         }
 
-        if (moveTouchId.current !== null) continue
-
-        if (mode === 'drag') {
-          const gp = screenToGame(t.clientX, t.clientY)
-          if (!isOnShip(gp.x, gp.y)) continue
-          touchOffset.current = {
-            x: gp.x - engine.player.x,
-            y: gp.y - engine.player.y,
-          }
-          moveTouchId.current = t.identifier
-          inputManager.state.touchActive = true
-          const target = screenToGame(t.clientX, t.clientY)
-          inputManager.state.touchTargetX = target.x - touchOffset.current.x
-          inputManager.state.touchTargetY = target.y - touchOffset.current.y
-        } else {
-          const gp = screenToGame(t.clientX, t.clientY)
-          touchOffset.current = { x: 0, y: -60 }
-          moveTouchId.current = t.identifier
-          inputManager.state.touchActive = true
-          inputManager.state.touchTargetX = gp.x + touchOffset.current.x
-          inputManager.state.touchTargetY = gp.y + touchOffset.current.y
+        if (fireTouchId.current === null && isRightSide) {
+          fireTouchId.current = t.identifier
+          inputManager.state.firing = true
         }
       }
     }
@@ -97,15 +104,9 @@ export function TouchControls({ engine }: TouchControlsProps) {
       e.preventDefault()
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]
-
         if (t.identifier === moveTouchId.current) {
           const gp = screenToGame(t.clientX, t.clientY)
-          const { cw, ch } = getCanvasScale()
-          const pw2 = engine.player.width / 2
-          const ph2 = engine.player.height / 2
-          inputManager.state.touchTargetX = clamp(gp.x - touchOffset.current.x, pw2, cw - pw2)
-          inputManager.state.touchTargetY = clamp(gp.y - touchOffset.current.y, ph2, ch - ph2)
-          inputManager.state.touchActive = true
+          setMoveTarget(gp.x, gp.y)
         }
       }
     }
@@ -125,62 +126,56 @@ export function TouchControls({ engine }: TouchControlsProps) {
 
         if (t.identifier === fireTouchId.current) {
           fireTouchId.current = null
-          const settings = useGameStore.getState().settings
-          if (!settings.autoFire) {
+          if (!useGameStore.getState().settings.autoFire) {
             inputManager.state.firing = false
           }
         }
       }
     }
 
-    el.addEventListener('touchstart', onTouchStart, { passive: false })
-    el.addEventListener('touchmove', onTouchMove, { passive: false })
-    el.addEventListener('touchend', onTouchEnd, { passive: false })
-    el.addEventListener('touchcancel', onTouchEnd, { passive: false })
+    document.addEventListener('touchstart', onTouchStart, { passive: false })
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', onTouchEnd, { passive: false })
+    document.addEventListener('touchcancel', onTouchEnd, { passive: false })
 
     return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
-      el.removeEventListener('touchend', onTouchEnd)
-      el.removeEventListener('touchcancel', onTouchEnd)
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+      document.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [isTouchDevice, engine])
+  }, [isTouchDevice])
 
   if (!isPlaying || !isTouchDevice) return null
 
   const showFireButton = !settings.autoFire
 
   return (
-    <div
-      ref={containerRef}
-      id="touch-controls"
-      style={{
-        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-        zIndex: 20, touchAction: 'none', pointerEvents: 'auto',
-        userSelect: 'none', WebkitUserSelect: 'none',
-      }}
-    >
+    <>
       {showFireButton && (
         <div
-          onTouchStart={(e) => { e.preventDefault(); inputManager.state.firing = true; fireButtonTouch.current = true }}
-          onTouchEnd={(e) => { e.preventDefault(); fireButtonTouch.current = false; inputManager.state.firing = false }}
+          data-ui
+          onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); inputManager.state.firing = true }}
+          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); inputManager.state.firing = false }}
           style={{
             position: 'fixed',
             right: 30,
             bottom: 30,
-            width: 70, height: 70,
+            width: 72, height: 72,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,50,50,0.3), rgba(200,0,0,0.1))',
-            border: '2px solid rgba(255,50,50,0.25)',
+            background: 'radial-gradient(circle, rgba(255,50,50,0.35), rgba(200,0,0,0.12))',
+            border: '2px solid rgba(255,50,50,0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'rgba(255,255,255,0.5)',
+            color: 'rgba(255,255,255,0.6)',
             fontSize: 10,
             fontWeight: 700,
             letterSpacing: '1px',
             cursor: 'pointer',
             zIndex: 25,
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
           }}
         >
           FIRE
@@ -188,6 +183,7 @@ export function TouchControls({ engine }: TouchControlsProps) {
       )}
 
       <button
+        data-ui
         onClick={() => setSettings({ autoFire: !settings.autoFire })}
         style={{
           position: 'fixed',
@@ -209,7 +205,7 @@ export function TouchControls({ engine }: TouchControlsProps) {
       >
         AF
       </button>
-    </div>
+    </>
   )
 }
 

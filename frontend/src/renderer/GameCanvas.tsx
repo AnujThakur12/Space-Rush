@@ -37,8 +37,9 @@ export function GameCanvas({ engine }: GameCanvasProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const cw = canvas.width
-    const ch = canvas.height
+    const dpr = window.devicePixelRatio || 1
+    const cw = canvas.width / dpr
+    const ch = canvas.height / dpr
 
     engine.canvasW = cw
     engine.canvasH = ch
