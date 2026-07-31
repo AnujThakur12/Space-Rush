@@ -68,6 +68,7 @@ export function TouchControls({ engine }: TouchControlsProps) {
     }
 
     const onTouchStart = (e: TouchEvent) => {
+      if (useGameStore.getState().screen !== 'playing') return
       if (isUiElement(e.target)) return
       e.preventDefault()
       const mode = useGameStore.getState().settings.touchControlMode
@@ -101,6 +102,7 @@ export function TouchControls({ engine }: TouchControlsProps) {
     }
 
     const onTouchMove = (e: TouchEvent) => {
+      if (moveTouchId.current === null && fireTouchId.current === null) return
       e.preventDefault()
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]
