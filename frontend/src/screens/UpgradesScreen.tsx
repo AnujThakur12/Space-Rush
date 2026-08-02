@@ -3,9 +3,9 @@ import { useGameStore } from '../store/gameStore'
 import { storageManager } from '../engine/StorageManager'
 
 const UPGRADES = [
-  { key: 'health', label: 'Health', desc: '+10 HP per level', max: 10, cost: 100 },
-  { key: 'damage', label: 'Damage', desc: '+3 DMG per level', max: 10, cost: 150 },
-  { key: 'speed', label: 'Speed', desc: '+15 SPD per level', max: 10, cost: 120 },
+  { key: 'health', label: 'Health', desc: '+1 HP per level', max: 10, cost: 100 },
+  { key: 'damage', label: 'Damage', desc: '+1 DMG per level', max: 10, cost: 150 },
+  { key: 'speed', label: 'Speed', desc: '+10 SPD per level', max: 10, cost: 120 },
   { key: 'fireRate', label: 'Fire Rate', desc: 'Faster shooting', max: 10, cost: 200 },
   { key: 'armor', label: 'Armor', desc: 'Damage reduction', max: 10, cost: 180 },
 ]
@@ -27,7 +27,11 @@ export function UpgradesScreen() {
     const cost = upg.cost * (current + 1)
     if (storageManager.spendCoins(cost)) {
       storageManager.setUpgradeLevel(upg.key, current + 1)
+      const stats = storageManager.getStats()
+      stats.upgradesPurchased += 1
+      storageManager.saveStats(stats)
       useGameStore.setState({ coins: storageManager.getCoins() })
+      useGameStore.getState().setStats(stats)
       setLevels((prev) => ({ ...prev, [upg.key]: current + 1 }))
       setCoins(storageManager.getCoins())
       setMsg(`${upg.label} upgraded to level ${current + 1}!`)

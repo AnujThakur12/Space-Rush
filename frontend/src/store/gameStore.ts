@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { storageManager } from '../engine/StorageManager'
 import type {
   GameState,
   GameSettings,
@@ -63,6 +64,7 @@ export interface GameStore {
   weaponType: WeaponType
   combo: number
   comboMultiplier: number
+  bombs: number
   bossHp: number
   bossMaxHp: number
   bossActive: boolean
@@ -94,8 +96,8 @@ export interface GameStore {
 export const useGameStore = create<GameStore>((set, get) => ({
   screen: 'loading',
   settings: loadSettings(),
-  stats: { ...DEFAULT_STATS },
-  achievements: [],
+  stats: storageManager.getStats(),
+  achievements: storageManager.getAchievements(),
   profile: null,
   score: 0,
   highScore: loadHighScore(),
@@ -110,6 +112,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   weaponType: 'spread',
   combo: 0,
   comboMultiplier: 1,
+  bombs: 1,
   bossHp: 0,
   bossMaxHp: 0,
   bossActive: false,
@@ -131,6 +134,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerMaxShield: p.maxShield,
       weaponLevel: p.weaponLevel,
       weaponType: p.weaponType,
+      bombs: p.bombs,
     }),
 
   updateBossHUD: (b) =>
@@ -192,6 +196,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       weaponType: 'spread',
       combo: 0,
       comboMultiplier: 1,
+      bombs: 1,
       bossHp: 0,
       bossMaxHp: 0,
       bossActive: false,

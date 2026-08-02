@@ -137,7 +137,7 @@ export class StorageManager {
 
   async login(email: string, password: string): Promise<{ ok: boolean; error?: string }> {
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -149,6 +149,7 @@ export class StorageManager {
         this._loggedIn = true
         localStorage.setItem('spacerush_token', data.token)
         localStorage.setItem('spacerush_username', this._username)
+        if (data.data) this.applyCloudData(data.data)
         return { ok: true }
       }
       return { ok: false, error: data.error || 'Login failed' }
@@ -160,7 +161,7 @@ export class StorageManager {
 
   async register(email: string, password: string): Promise<{ ok: boolean; error?: string }> {
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
+      const res = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -172,6 +173,7 @@ export class StorageManager {
         this._loggedIn = true
         localStorage.setItem('spacerush_token', data.token)
         localStorage.setItem('spacerush_username', this._username)
+        if (data.data) this.applyCloudData(data.data)
         return { ok: true }
       }
       return { ok: false, error: data.error || 'Registration failed' }
@@ -198,10 +200,10 @@ export class StorageManager {
         selectedPlane: this.getSelectedPlane(),
         upgrades: this.getUpgrades(),
       }
-      const res = await fetch(`${API_URL}/save`, {
+      const res = await fetch(`${API_URL}/data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ data }),
       })
       return res.ok
     } catch { return false }
@@ -210,41 +212,55 @@ export class StorageManager {
   async loadCloud(): Promise<boolean> {
     if (!this._loggedIn || !this.token) return false
     try {
-      const res = await fetch(`${API_URL}/save`, {
+      const res = await fetch(`${API_URL}/data`, {
         headers: { Authorization: `Bearer ${this.token}` },
       })
       if (!res.ok) return false
-      const data = await res.json()
-      if (data.stats) this.saveStats(data.stats)
-      if (data.coins) this.set('coins', data.coins)
-      if (data.unlockedPlanes) this.set('unlockedPlanes', data.unlockedPlanes)
-      if (data.selectedPlane) this.set('selectedPlane', data.selectedPlane)
-      if (data.upgrades) {
-        for (const [k, v] of Object.entries(data.upgrades)) {
-          this.setUpgradeLevel(k, Number(v))
-        }
-      }
+      const json = await res.json()
+      if (json.data) this.applyCloudData(json.data)
       return true
     } catch { return false }
   }
 
-  async submitScore(score: number, level: number, kills: number, plane: PlaneType): Promise<void> {
+  async deleteAccount(): Promise<{ ok: boolean; error?: string }> {
+    let serverOk = false
     try {
-      await fetch(`${API_URL}/leaderboard`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: this.token ? `Bearer ${this.token}` : '' },
-        body: JSON.stringify({ score, level, kills, plane, name: this._username || 'Pilot' }),
+      const res = await fetch(`${API_URL}/account`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${this.token || ''}` },
       })
-    } catch {}
+      serverOk = res.ok
+    } catch { serverOk = false }
+    this.resetProgress()
+    return serverOk ? { ok: true } : { ok: true, error: 'Server unreachable - local progress cleared' }
+  }
+
+  private applyCloudData(data: any): void {
+    if (!data || typeof data !== 'object') return
+
+    const stats = this.getStats()
+    if (data.stats && typeof data.stats === 'object') Object.assign(stats, data.stats)
+    if (typeof data.highScore === 'number' && data.highScore > stats.highScore) stats.highScore = data.highScore
+    if (typeof data.totalKills === 'number' && data.totalKills > stats.totalKills) stats.totalKills = data.totalKills
+    this.saveStats(stats)
+
+    if (typeof data.coins === 'number') this.set('coins', data.coins)
+    if (Array.isArray(data.unlockedPlanes) && data.unlockedPlanes.length) {
+      this.set('unlockedPlanes', data.unlockedPlanes)
+    }
+    if (data.selectedPlane) this.selectPlane(data.selectedPlane)
+    if (data.upgrades && typeof data.upgrades === 'object') {
+      for (const [k, v] of Object.entries(data.upgrades)) {
+        this.setUpgradeLevel(k, Number(v))
+      }
+    }
   }
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
     try {
-      const res = await fetch(`${API_URL}/leaderboard`)
-      if (!res.ok) return []
-      return await res.json()
-    } catch {
       return JSON.parse(localStorage.getItem('spacerush_leaderboard') || '[]')
+    } catch {
+      return []
     }
   }
 

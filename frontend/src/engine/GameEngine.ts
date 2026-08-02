@@ -43,6 +43,8 @@ export class GameEngine {
   currentLevel = 1
   score = 0
   gameTime = 0
+  bossesDefeated = 0
+  powerupsCollected = 0
   paused = false
   gameOver = false
   bossActive = false
@@ -132,6 +134,8 @@ export class GameEngine {
     this.score = 0
     this.currentLevel = 1
     this.gameOver = false
+    this.bossesDefeated = 0
+    this.powerupsCollected = 0
     this.bossActive = false
     this.bossSpawned = false
     this.bossLevel = false
@@ -1034,6 +1038,7 @@ export class GameEngine {
     this.player.combo++
     this.player.comboTimer = 2.5
     if (this.player.combo > this.player.maxCombo) this.player.maxCombo = this.player.combo
+    this.player.comboMultiplier = 1 + Math.min(this.player.combo, 30) * 0.1
 
     const comboMult = 1 + Math.min(this.player.combo, 30) * 0.1
     const bonusScore = Math.floor(e.score * comboMult)
@@ -1042,6 +1047,16 @@ export class GameEngine {
     this.emitBigExplosion(e.x, e.y, enemyExplosionColor(e.type))
     this.screenShakeIntensity = 6
     this.addFloatingText(e.x, e.y - 25, `+${bonusScore}`, '#ffd700')
+
+    if (this.player.kills === 1) {
+      this.unlockAchievement('first_blood', 'FIRST BLOOD', 'Destroy your first enemy')
+    }
+    if (this.player.kills === 100) {
+      this.unlockAchievement('kill_100', 'CENTURION', 'Destroy 100 enemies')
+    }
+    if (this.player.combo === 10) {
+      this.unlockAchievement('combo_10', 'ON FIRE', 'Reach a 10x combo')
+    }
 
     if (this.player.combo >= 5) {
       this.addFloatingText(e.x, e.y - 50, `🔥 ${this.player.combo}x COMBO! 🔥`, '#ffd700')
@@ -1073,6 +1088,8 @@ export class GameEngine {
     if (!this.boss) return
     this.boss.deathTimer = 3
     this.score += this.boss.level * 500
+    this.bossesDefeated++
+    this.unlockAchievement('boss_slayer', 'BOSS SLAYER', 'Defeat your first boss')
 
     const bossNames = ['', '', '', '', 'DESTROYER', '', '', '', '', 'TITAN', '', '', '', '', 'OVERLORD', '', '', '', '', 'ANNIHILATOR']
     const bossName = bossNames[this.boss.level] || 'WARLORD'
@@ -1122,6 +1139,12 @@ export class GameEngine {
       this.bossSpawned = false
       this.bossLevel = false
       this.enemies = []
+      if (this.currentLevel === 5) {
+        this.unlockAchievement('level_5', 'PROGRESSION', 'Reach level 5')
+      }
+      if (this.currentLevel === 10) {
+        this.unlockAchievement('level_10', 'VETERAN', 'Reach level 10')
+      }
       this.startLevelTransition()
       this.addNotification(`🌀 Level ${this.currentLevel} - Engage! 🌀`, '#88bbff')
     }, 2500)
@@ -1186,6 +1209,10 @@ export class GameEngine {
 
   private applyPowerup(pu: PowerUp): void {
     const p = this.player
+    this.powerupsCollected++
+    if (this.powerupsCollected === 10) {
+      this.unlockAchievement('collector', 'COLLECTOR', 'Collect 10 power-ups')
+    }
     switch (pu.type) {
       case 'weapon':
         if (p.weaponLevel < 5) {
@@ -1225,6 +1252,13 @@ export class GameEngine {
         this.slowMotionTimer = 4
         this.addNotification('SLOW MOTION', '#88bbff')
         break
+    }
+  }
+
+  private unlockAchievement(id: string, name: string, description: string): void {
+    if (storageManager.unlockAchievement(id, name, description)) {
+      this.addNotification(`🏆 ${name}!`, '#ffd700')
+      audioManager.playSfxSynth('combo')
     }
   }
 

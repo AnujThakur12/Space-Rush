@@ -1,10 +1,23 @@
 import { useGameStore } from '../store/gameStore'
+import { storageManager } from '../engine/StorageManager'
 import type { TouchControlMode } from '../types/game'
 
 export function SettingsScreen() {
   const settings = useGameStore((s) => s.settings)
   const setSettings = useGameStore((s) => s.setSettings)
   const setScreen = useGameStore((s) => s.setScreen)
+
+  const handleResetProgress = () => {
+    if (window.confirm('Reset ALL progress (coins, planes, upgrades, high score)? This cannot be undone.')) {
+      storageManager.resetProgress()
+      const store = useGameStore.getState()
+      store.setSettings(storageManager.getSettings())
+      store.setUnlockedPlanes(storageManager.getUnlockedPlanes())
+      useGameStore.setState({ coins: storageManager.getCoins(), highScore: storageManager.getHighScore() })
+      store.setStats(storageManager.getStats())
+      setScreen('menu')
+    }
+  }
 
   return (
     <div style={overlayStyle}>
@@ -41,6 +54,15 @@ export function SettingsScreen() {
         value={settings.vibration}
         onChange={(v) => setSettings({ vibration: v })}
       />
+
+      <button
+        onClick={handleResetProgress}
+        style={{
+          ...resetBtnStyle,
+        }}
+      >
+        RESET PROGRESS
+      </button>
 
       <button onClick={() => setScreen('menu')} style={backBtnStyle}>
         BACK
@@ -141,6 +163,19 @@ const backBtnStyle: React.CSSProperties = {
   color: '#fff',
   background: 'rgba(255,255,255,0.1)',
   border: '1px solid rgba(255,255,255,0.2)',
+  borderRadius: 8,
+  cursor: 'pointer',
+  letterSpacing: '0.08em',
+}
+
+const resetBtnStyle: React.CSSProperties = {
+  marginTop: 16,
+  padding: '8px 24px',
+  fontSize: 12,
+  fontWeight: 600,
+  color: '#ff4444',
+  background: 'rgba(255,68,68,0.08)',
+  border: '1px solid rgba(255,68,68,0.3)',
   borderRadius: 8,
   cursor: 'pointer',
   letterSpacing: '0.08em',

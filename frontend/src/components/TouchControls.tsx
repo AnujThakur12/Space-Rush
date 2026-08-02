@@ -14,6 +14,7 @@ export function TouchControls({ engine }: TouchControlsProps) {
   const screen = useGameStore((s) => s.screen)
   const settings = useGameStore((s) => s.settings)
   const setSettings = useGameStore((s) => s.setSettings)
+  const bombs = useGameStore((s) => s.bombs)
   const isPlaying = screen === 'playing'
 
   const [isTouchDevice, setIsTouchDevice] = useState(false)
@@ -207,6 +208,38 @@ export function TouchControls({ engine }: TouchControlsProps) {
       >
         AF
       </button>
+
+      {bombs > 0 && (
+        <div
+          data-ui
+          onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); inputManager.state.bombPressed = true }}
+          style={{
+            position: 'fixed',
+            left: 'max(24px, env(safe-area-inset-left, 24px))',
+            bottom: 'max(140px, env(safe-area-inset-bottom, 140px))',
+            width: 58, height: 58,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,150,0,0.35), rgba(180,80,0,0.12))',
+            border: '2px solid rgba(255,150,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '1px',
+            cursor: 'pointer',
+            zIndex: 25,
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+          aria-label="Use bomb"
+        >
+          <span style={{ fontSize: 16, lineHeight: 1 }}>💣</span>
+          <span style={{ fontSize: 9 }}>{bombs}</span>
+        </div>
+      )}
     </>
   )
 }

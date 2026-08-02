@@ -32,7 +32,9 @@ export default function App() {
   }, [])
 
   const hydrateStore = useCallback(() => {
-    useGameStore.getState().setUnlockedPlanes(storageManager.getUnlockedPlanes())
+    const store = useGameStore.getState()
+    store.setUnlockedPlanes(storageManager.getUnlockedPlanes())
+    store.setStats(storageManager.getStats())
     useGameStore.setState({ coins: storageManager.getCoins() })
     const hs = storageManager.getHighScore()
     if (hs > 0) useGameStore.setState({ highScore: hs })
@@ -73,16 +75,33 @@ export default function App() {
         }
         storageManager.addCoins(Math.floor(finalScore / 10))
         useGameStore.setState({ coins: storageManager.getCoins(), lastNewHigh: wasNewHigh })
+
+        const plane = storageManager.getSelectedPlane()
         storageManager.addLocalLeaderboard({
           rank: 0,
           name: storageManager.getUsername() || 'Pilot',
           score: finalScore,
           level: engine.currentLevel,
           kills: engine.player.kills,
-          plane: 'default',
+          plane,
           timestamp: new Date().toISOString(),
         })
-        storageManager.submitScore(finalScore, engine.currentLevel, engine.player.kills, 'default')
+
+        const stats = storageManager.getStats()
+        stats.totalGames += 1
+        stats.totalScore += finalScore
+        stats.totalKills += engine.player.kills
+        stats.totalDeaths += 1
+        stats.totalPlayTime += engine.gameTime
+        stats.bossesDefeated += engine.bossesDefeated
+        stats.powerupsCollected += engine.powerupsCollected
+        stats.maxCombo = Math.max(stats.maxCombo, engine.player.maxCombo)
+        stats.highScore = Math.max(stats.highScore, finalScore)
+        storageManager.saveStats(stats)
+        useGameStore.getState().setStats(stats)
+
+        if (storageManager.isLoggedIn()) storageManager.saveCloud()
+
         setScreen('gameover')
       }
 

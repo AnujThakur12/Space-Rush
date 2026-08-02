@@ -17,6 +17,13 @@ export function AccountScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(storageManager.isLoggedIn())
   const [username, setUsername] = useState(storageManager.getUsername())
 
+  const syncStore = () => {
+    const store = useGameStore.getState()
+    store.setUnlockedPlanes(storageManager.getUnlockedPlanes())
+    store.setStats(storageManager.getStats())
+    useGameStore.setState({ coins: storageManager.getCoins(), highScore: storageManager.getHighScore() })
+  }
+
   const handleLogin = async () => {
     if (!email || !password) {
       setMessage('Enter email and password')
@@ -29,6 +36,7 @@ export function AccountScreen() {
     setMessage(result.error || 'Logged in!')
     setMsgColor(result.ok ? '#44ff44' : '#ff4444')
     if (result.ok) {
+      syncStore()
       setIsLoggedIn(true)
       setUsername(storageManager.getUsername())
       setView('profile')
@@ -47,6 +55,7 @@ export function AccountScreen() {
     setMessage(result.error || 'Account created!')
     setMsgColor(result.ok ? '#44ff44' : '#ff4444')
     if (result.ok) {
+      syncStore()
       setIsLoggedIn(true)
       setUsername(storageManager.getUsername())
       setView('profile')
@@ -64,11 +73,15 @@ export function AccountScreen() {
 
   const handleDelete = async () => {
     if (window.confirm('Delete account? All progress will be lost!')) {
-      setMessage('Account deleted')
+      setMessage('Deleting account...')
       setMsgColor('#ff4444')
+      const result = await storageManager.deleteAccount()
+      syncStore()
       setIsLoggedIn(false)
       setUsername('')
       setView('login')
+      setMessage(result.error || 'Account deleted')
+      setMsgColor('#ff4444')
     }
   }
 

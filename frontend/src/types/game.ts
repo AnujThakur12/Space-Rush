@@ -186,7 +186,7 @@ export interface Achievement {
   name: string
   description: string
   unlocked: boolean
-  icon: string
+  icon?: string
 }
 
 export interface GameStats {
