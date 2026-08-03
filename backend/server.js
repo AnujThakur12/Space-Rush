@@ -197,6 +197,43 @@ app.get('/api/admin/users', (req, res) => {
     res.json({ ok: true, users });
 });
 
+app.get('/api/leaderboard', (req, res) => {
+    try {
+        const db = getDb();
+        const rows = db.prepare(
+            'SELECT name, score, level, kills, plane, created_at AS timestamp FROM leaderboard ORDER BY score DESC, created_at ASC LIMIT 50'
+        ).all();
+        res.json(rows);
+    } catch (e) {
+        console.error('Leaderboard fetch error:', e);
+        res.status(500).json({ ok: false, error: 'Server error' });
+    }
+});
+
+app.post('/api/leaderboard', (req, res) => {
+    try {
+        const { score, level, kills, plane, name } = req.body;
+        if (typeof score !== 'number' || !isFinite(score) || score <= 0) {
+            return res.status(400).json({ ok: false, error: 'Invalid score' });
+        }
+        const db = getDb();
+        db.prepare(
+            'INSERT INTO leaderboard (name, score, level, kills, plane, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+        ).run(
+            String(name || 'Pilot').slice(0, 50),
+            Math.floor(score),
+            Math.max(1, Math.floor(level || 1)),
+            Math.floor(kills || 0),
+            String(plane || 'default').slice(0, 20),
+            Date.now()
+        );
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('Leaderboard submit error:', e);
+        res.status(500).json({ ok: false, error: 'Server error' });
+    }
+});
+
 app.get('/api/health', (req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
 });

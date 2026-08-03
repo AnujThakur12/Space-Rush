@@ -143,7 +143,7 @@ export class StorageManager {
         body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
-      if (res.ok) {
+      if (data.ok && data.token) {
         this.token = data.token
         this._username = data.username || email
         this._loggedIn = true
@@ -167,7 +167,7 @@ export class StorageManager {
         body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
-      if (res.ok) {
+      if (data.ok && data.token) {
         this.token = data.token
         this._username = data.username || email
         this._loggedIn = true
@@ -205,7 +205,8 @@ export class StorageManager {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` },
         body: JSON.stringify({ data }),
       })
-      return res.ok
+      const body = await res.json()
+      return body.ok === true
     } catch { return false }
   }
 
@@ -216,8 +217,9 @@ export class StorageManager {
         headers: { Authorization: `Bearer ${this.token}` },
       })
       if (!res.ok) return false
-      const json = await res.json()
-      if (json.data) this.applyCloudData(json.data)
+      const body = await res.json()
+      if (!body.ok) return false
+      this.applyCloudData(body.data || {})
       return true
     } catch { return false }
   }
@@ -257,10 +259,15 @@ export class StorageManager {
   }
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
+    const local = () => JSON.parse(localStorage.getItem('spacerush_leaderboard') || '[]')
     try {
-      return JSON.parse(localStorage.getItem('spacerush_leaderboard') || '[]')
+      const res = await fetch(`${API_URL}/leaderboard`)
+      if (!res.ok) return local()
+      const data = await res.json()
+      if (Array.isArray(data)) return data
+      return local()
     } catch {
-      return []
+      return local()
     }
   }
 

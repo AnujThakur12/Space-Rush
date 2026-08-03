@@ -30,6 +30,16 @@ function initSchema() {
             updated_at INTEGER NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS leaderboard (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            level INTEGER NOT NULL,
+            kills INTEGER NOT NULL,
+            plane TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        );
     `);
 }
 
